@@ -141,11 +141,15 @@ public class YangCompiler {
                 return false;
             }
         };
+        System.out.print("[INFO] find module:"+ moduleId.getModuleName() + (moduleId.getRevision().isEmpty()?"":moduleId.getRevision())
+        + " from "+ localRepository.getAbsolutePath() +" ...");
         File[] matched = localRepository.listFiles(filenameFilter);
         if(matched == null || matched.length == 0){
+            System.out.println("not found.");
             return null;
         }
         if(matched.length == 1){
+            System.out.println("get " + matched[0].getName());
             return matched[0];
         }
         File latest = null;
@@ -160,14 +164,17 @@ public class YangCompiler {
                 }
             }
         }
+        System.out.println("get " + latest.getName());
         return latest;
     }
     private File  getFromRemote(ModuleId moduleId) throws IOException {
         ModuleInfo moduleInfo = null;
         if(moduleId.getRevision() == null || moduleId.getRevision().equals("")){
             String url = "https://yangcatalog.org/api/search/name/" + moduleId.getModuleName();
+            System.out.print("[INFO]downloading module info:"+ moduleId.getModuleName() +" from "+url + " ...");
             YangCatalog yangCatalog = YangCatalog.parse(httpsGet(url));
             moduleInfo = yangCatalog.getLatestModule(moduleId.getModuleName());
+            System.out.println( moduleInfo==null?" not found.":"revision="+moduleInfo.getRevision());
 
         } else {
             String organization = moduleId.getModuleName().substring(0,moduleId.getModuleName().indexOf("-"));
@@ -176,13 +183,18 @@ public class YangCompiler {
             }
             String url="https://yangcatalog.org/api/search/modules/" + moduleId.getModuleName() + ","+ moduleId.getRevision()
                     +","+organization;
+            System.out.print("[INFO]downloading module info:"+ moduleId.getModuleName() +" from "+url + " ...");
             moduleInfo = ModuleInfo.parse(httpsGet(url));
+            System.out.println( moduleInfo==null?" not found.":"finished");
 
         }
         if(moduleInfo == null){
             return null;
         }
+        System.out.print("[INFO]downloading content of module:"+moduleInfo.getName()+"@"+moduleInfo.getRevision()
+                + " from "+ moduleInfo.getSchema().toString() + " ...");
         String yangString = httpsGet(moduleInfo.getSchema().toString());
+        System.out.println("finished.");
         File localRepositoryFile = new File(settings.getLocalRepository());
         if(!localRepositoryFile.exists()){
             localRepositoryFile.mkdirs();
@@ -190,6 +202,7 @@ public class YangCompiler {
         String yangfileName = moduleInfo.getName() + "@" + moduleInfo.getRevision() + ".yang";
         File localYangFile = new File(localRepositoryFile,yangfileName);
         FileUtil.writeUtf8File(yangString,localYangFile);
+        System.out.println("[INFO]save module:"+moduleInfo.getName()+"@"+moduleInfo.getRevision() + " to "+ localYangFile.getAbsolutePath());
         return localYangFile;
     }
     private void buildDependencies(YangSchemaContext schemaContext,List<ModuleId> dependencies) throws IOException, YangParserException, YangCompilerException {
