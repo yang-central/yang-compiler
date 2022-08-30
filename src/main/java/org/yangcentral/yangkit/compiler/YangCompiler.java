@@ -125,6 +125,17 @@ public class YangCompiler {
                     return false;
                 }
                 if(name.startsWith(prefix)&& name.endsWith(suffix)){
+                    String moduleInfo[] =name.split("@");
+                    String moduleName = moduleInfo[0];
+                    String revision = moduleInfo[1];
+                    if(!moduleName.equals(moduleId.getModuleName())){
+                        return false;
+                    }
+                    if(moduleId.getRevision() != null && moduleId.getRevision().length() >0){
+                        if(!revision.equals(moduleId.getRevision())){
+                            return false;
+                        }
+                    }
                     return true;
                 }
                 return false;
