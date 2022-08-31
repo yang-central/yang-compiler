@@ -44,9 +44,13 @@ public class ModuleInfo {
         JsonObject jsonObject = element.getAsJsonObject();
         String name = jsonObject.get("name").getAsString();
         String revision = jsonObject.get("revision").getAsString();
-        String organization = jsonObject.get("organization").getAsString();
+        JsonElement organizationElement = jsonObject.get("organization");
+        String organization = null;
+        if(organizationElement != null){
+            organization = organizationElement.getAsString();
+        }
         URI schema = URI.create(jsonObject.get("schema").getAsString());
-        if(name == null || revision == null || organization == null || schema == null){
+        if(name == null || revision == null || schema == null){
             return null;
         }
         ModuleInfo moduleInfo = new ModuleInfo(name,revision,organization);

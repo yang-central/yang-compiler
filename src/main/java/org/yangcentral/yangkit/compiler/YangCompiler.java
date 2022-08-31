@@ -5,7 +5,9 @@ import org.yangcentral.yangkit.base.YangBuiltinKeyword;
 import org.yangcentral.yangkit.base.YangElement;
 import org.yangcentral.yangkit.catalog.ModuleInfo;
 import org.yangcentral.yangkit.catalog.YangCatalog;
+import org.yangcentral.yangkit.common.api.validate.ValidatorRecord;
 import org.yangcentral.yangkit.common.api.validate.ValidatorResult;
+import org.yangcentral.yangkit.common.api.validate.ValidatorResultBuilder;
 import org.yangcentral.yangkit.model.api.schema.ModuleId;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
 import org.yangcentral.yangkit.model.api.stmt.Module;
@@ -16,11 +18,13 @@ import org.yangcentral.yangkit.parser.YangParserEnv;
 import org.yangcentral.yangkit.parser.YangParserException;
 import org.yangcentral.yangkit.parser.YangYinParser;
 import org.yangcentral.yangkit.utils.file.FileUtil;
+import org.yangcentral.yangkit.writter.YangFormatter;
+import org.yangcentral.yangkit.writter.YangWriter;
 
-import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
-import java.net.MalformedURLException;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -92,15 +96,19 @@ public class YangCompiler {
         }
         return dependencies;
     }
-    private  String httpsGet(String url) throws IOException {
+    private  String urlInvoke(String url) throws IOException {
         URL catalogUrl = new URL(url);
-        HttpsURLConnection urlConnection = (HttpsURLConnection) catalogUrl.openConnection();
+        URLConnection urlConnection = catalogUrl.openConnection();
         urlConnection.setConnectTimeout(600000);
         urlConnection.setReadTimeout(300000);
-        urlConnection.setRequestMethod("GET");
-        if(urlConnection.getResponseCode() != 200){
-            throw new RuntimeException("HTTPS GET request:"+url+" failed with error code="+ urlConnection.getResponseCode());
+        if(urlConnection instanceof HttpURLConnection){
+            HttpURLConnection httpURLConnection = (HttpURLConnection) urlConnection;
+            httpURLConnection.setRequestMethod("GET");
+            if(httpURLConnection.getResponseCode() != 200){
+                throw new RuntimeException("GET request:"+url+" failed with error code="+ httpURLConnection.getResponseCode());
+            }
         }
+
         StringBuilder sb = new StringBuilder();
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
         String output;
@@ -108,7 +116,8 @@ public class YangCompiler {
             sb.append(output);
             sb.append("\n");
         }
-        urlConnection.disconnect();
+        bufferedReader.close();
+        urlConnection.getInputStream().close();
         return sb.toString();
     }
     private File getFromLocal(ModuleId moduleId){
@@ -125,7 +134,8 @@ public class YangCompiler {
                     return false;
                 }
                 if(name.startsWith(prefix)&& name.endsWith(suffix)){
-                    String moduleInfo[] =name.split("@");
+                    String moduleDesc = name.substring(0,name.indexOf(suffix));
+                    String moduleInfo[] =moduleDesc.split("@");
                     String moduleName = moduleInfo[0];
                     String revision = moduleInfo[1];
                     if(!moduleName.equals(moduleId.getModuleName())){
@@ -141,7 +151,7 @@ public class YangCompiler {
                 return false;
             }
         };
-        System.out.print("[INFO] find module:"+ moduleId.getModuleName() + (moduleId.getRevision().isEmpty()?"":moduleId.getRevision())
+        System.out.print("[INFO]finding module:"+ moduleId.getModuleName() + (moduleId.getRevision().isEmpty()?"":moduleId.getRevision())
         + " from "+ localRepository.getAbsolutePath() +" ...");
         File[] matched = localRepository.listFiles(filenameFilter);
         if(matched == null || matched.length == 0){
@@ -170,9 +180,9 @@ public class YangCompiler {
     private File  getFromRemote(ModuleId moduleId) throws IOException {
         ModuleInfo moduleInfo = null;
         if(moduleId.getRevision() == null || moduleId.getRevision().equals("")){
-            String url = "https://yangcatalog.org/api/search/name/" + moduleId.getModuleName();
+            String url = settings.getRemoteRepository() +"search/name/" + moduleId.getModuleName();
             System.out.print("[INFO]downloading module info:"+ moduleId.getModuleName() +" from "+url + " ...");
-            YangCatalog yangCatalog = YangCatalog.parse(httpsGet(url));
+            YangCatalog yangCatalog = YangCatalog.parse(urlInvoke(url));
             moduleInfo = yangCatalog.getLatestModule(moduleId.getModuleName());
             System.out.println( moduleInfo==null?" not found.":"revision="+moduleInfo.getRevision());
 
@@ -181,10 +191,10 @@ public class YangCompiler {
             if(organization.equals("junos")){
                 organization = "juniper";
             }
-            String url="https://yangcatalog.org/api/search/modules/" + moduleId.getModuleName() + ","+ moduleId.getRevision()
+            String url= settings.getRemoteRepository()+"search/modules/" + moduleId.getModuleName() + ","+ moduleId.getRevision()
                     +","+organization;
             System.out.print("[INFO]downloading module info:"+ moduleId.getModuleName() +" from "+url + " ...");
-            moduleInfo = ModuleInfo.parse(httpsGet(url));
+            moduleInfo = ModuleInfo.parse(urlInvoke(url));
             System.out.println( moduleInfo==null?" not found.":"finished");
 
         }
@@ -193,7 +203,37 @@ public class YangCompiler {
         }
         System.out.print("[INFO]downloading content of module:"+moduleInfo.getName()+"@"+moduleInfo.getRevision()
                 + " from "+ moduleInfo.getSchema().toString() + " ...");
-        String yangString = httpsGet(moduleInfo.getSchema().toString());
+        String yangString = urlInvoke(moduleInfo.getSchema().toString());
+        System.out.println("finished.");
+        File localRepositoryFile = new File(settings.getLocalRepository());
+        if(!localRepositoryFile.exists()){
+            localRepositoryFile.mkdirs();
+        }
+        String yangfileName = moduleInfo.getName() + "@" + moduleInfo.getRevision() + ".yang";
+        File localYangFile = new File(localRepositoryFile,yangfileName);
+        FileUtil.writeUtf8File(yangString,localYangFile);
+        System.out.println("[INFO]save module:"+moduleInfo.getName()+"@"+moduleInfo.getRevision() + " to "+ localYangFile.getAbsolutePath());
+        return localYangFile;
+    }
+    private File  getFromSettings(ModuleId moduleId) throws IOException {
+        ModuleInfo moduleInfo = null;
+        if(moduleId.getRevision() == null || moduleId.getRevision().equals("")){
+            moduleInfo = settings.getLatestModuleInfo(moduleId.getModuleName());
+            System.out.print("[INFO]getting module info:"+ moduleId.getModuleName() +" from settings");
+            System.out.println( moduleInfo==null?" not found.":"revision="+moduleInfo.getRevision());
+
+        } else {
+            System.out.print("[INFO]getting module info:"+ moduleId.getModuleName() +" from settings.");
+            moduleInfo = settings.getModuleInfo(moduleId.getModuleName(),moduleId.getRevision());
+            System.out.println( moduleInfo==null?" not found.":"finished");
+
+        }
+        if(moduleInfo == null){
+            return null;
+        }
+        System.out.print("[INFO]downloading content of module:"+moduleInfo.getName()+"@"+moduleInfo.getRevision()
+                + " from "+ moduleInfo.getSchema().toString() + " ...");
+        String yangString = urlInvoke(moduleInfo.getSchema().toString());
         System.out.println("finished.");
         File localRepositoryFile = new File(settings.getLocalRepository());
         if(!localRepositoryFile.exists()){
@@ -210,9 +250,15 @@ public class YangCompiler {
             if(schemaContext.getModule(moduleId).isPresent()){
                 continue;
             }
+            //firstly,get yang file from local repository
             File file = getFromLocal(moduleId);
             if(file == null){
-                file = getFromRemote(moduleId);
+                //secondly,if not found,get yang file from settings
+                file = getFromSettings(moduleId);
+                if(file == null){
+                    //thirdly, if not found, get yang file from remote repository
+                    file = getFromRemote(moduleId);
+                }
             }
             if(file == null){
                 throw new YangCompilerException("can not find the yang module named:"+moduleId.getModuleName(),moduleId);
@@ -264,14 +310,78 @@ public class YangCompiler {
         }
     }
 
-    public static void main(String args[]){
-        String yangdir = args[0];
+    public static void main(String args[]) throws IOException {
+        String yangdir = null;
+        String settingsfile = null;
+        boolean install = false;
+        for(String arg:args){
+            String[] paras = arg.split("=");
+            if(paras.length ==2){
+                String para = paras[0];
+                String value = paras[1];
+                if(para.equals("yang")){
+                    yangdir = value;
+                }else if(para.equals("settings")){
+                    settingsfile = value;
+                }
+            } else {
+                if(arg.equals("install")){
+                    install = true;
+                }
+            }
+        }
+        if(yangdir == null){
+            System.out.println("no yang directory!");
+            System.out.println("Usage: yang-compiler yang={yang directory} [settings={settings.json}] [install]");
+        }
+        String defaultSettingsfile = System.getProperty("user.home") + File.separator + ".yang" + File.separator + "settings.json";
         YangCompiler compiler = new YangCompiler();
-        Settings settings = new Settings();
+        Settings settings = null;
+        if(settingsfile != null){
+            settings = Settings.parse(FileUtil.readFile2String(settingsfile));
+        } else {
+            File defaultSettingsFile = new File(defaultSettingsfile);
+            if(defaultSettingsFile.exists()){
+                settings = Settings.parse(FileUtil.readFile2String(defaultSettingsfile));
+            }
+            else {
+                settings = new Settings();
+            }
+        }
+
         compiler.setSettings(settings);
         compiler.setYang(new File(yangdir));
         YangSchemaContext schemaContext = compiler.compile();
-        System.out.println(schemaContext.validate());
+        ValidatorResult validatorResult = schemaContext.validate();
+        ValidatorResultBuilder validatorResultBuilder = new ValidatorResultBuilder();
+        List<ValidatorRecord<?,?>> records = validatorResult.getRecords();
+        for(ValidatorRecord<?,?> record:records){
+            if(record.getBadElement() instanceof YangStatement){
+                YangStatement yangStatement = (YangStatement) record.getBadElement();
+                if(schemaContext.getModules().contains(yangStatement.getContext().getCurModule())){
+                    validatorResultBuilder.addRecord(record);
+                }
+            }
+        }
+        validatorResult = validatorResultBuilder.build();
+        if(install && validatorResult.isOk()){
+            for(Module module:schemaContext.getModules()){
+                List<YangElement> elements = schemaContext.getParseResult().get(module.getElementPosition().getSource());
+                StringBuilder sb = new StringBuilder();
+                for(YangElement element:elements){
+                    String yangStr = YangWriter.toYangString(element, YangFormatter.getPrettyYangFormatter(),null);
+                    sb.append(yangStr);
+                    sb.append("\n");
+                }
+                String moduleDesc =module.getArgStr()
+                        + (module.getCurRevisionDate().isPresent()?"@" + module.getCurRevisionDate().get():"");
+                String fileName = settings.getLocalRepository()+File.separator +moduleDesc ;
+                FileUtil.writeUtf8File(fileName,sb.toString());
+                System.out.println("[INFO]install "+ moduleDesc + " to " + settings.getLocalRepository());
+
+            }
+        }
+        System.out.println(validatorResult);
     }
 
 }
