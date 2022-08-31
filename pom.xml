@@ -22,7 +22,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.huawei.yang.transformer.YangTransformer</mainClass>
+                            <mainClass>org.yangcentral.yangkit.compiler.YangCompiler</mainClass>
                             <classpathPrefix>libs/</classpathPrefix>
                         </manifest>
                         <!--
