@@ -17,6 +17,7 @@ Using Yang compiler, you can compile any YANG file regardless where it's depende
 * allow user to customize settings for compilation.
   * customize local repository,{user.home}/.yang is default.
   * customize remote repository, [yangcatalog](https://yangcatalog.org/api/) is default.
+  * support proxy.
   * define module information directly if some modules are not in [yangcatalog](https://yangcatalog.org/api/).
 * allow user to install yang files which are compiled OK.
 
@@ -44,36 +45,54 @@ java -jar yang-compiler-1.0-SNAPSHOT.jar yang=<_yang directory_> [ settings=<_se
 3. install: optional, if it's not present, the yang files to be complied will not be installed, if it's present, all yang files which is correct will be 
     installed to local repository. 
 ### settings.json example:
-`{
-"settings": {
-"local-repository": "/Users/llly/yang",
-"remote-repository": "https://yangcatalog.org/api/",
-"module-info": [
-{"name": "openconfig-acl",
-"revision": "2022-01-14",
-"schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/acl/openconfig-acl.yang"
-},
-{"name": "openconfig-packet-match-types",
-"revision": "2021-07-14",
-"schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/acl/openconfig-packet-match-types.yang"
-},
-{"name": "openconfig-packet-match",
-"revision": "2021-06-16",
-"schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/acl/openconfig-packet-match.yang"
-},
-{"name": "openconfig-inet-types",
-"revision": "2021-08-17",
-"schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/types/openconfig-inet-types.yang"
-},
-{"name": "openconfig-types",
-"revision": "2019-04-16",
-"schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/types/openconfig-types.yang"
-},
-{"name": "openconfig-yang-types",
-"revision": "2021-07-14",
-"schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/types/openconfig-yang-types.yang"
+`
+ {
+   
+    "settings": {
+
+      "local-repository": "/Users/llly/yang",
+
+      "remote-repository": "https://yangcatalog.org/api/",
+      
+      "proxy: {
+         
+          "url":"http:proxy.mydomain.com:8080",
+          
+           "authentication": {
+              
+              "username":"foo",
+              
+              "password":"bar"
+            
+            }
+
+       },
+
+       "module-info": [
+
+         {
+           
+            "name": "openconfig-acl",
+
+            "revision": "2022-01-14",
+
+            "schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/acl/openconfig-acl.yang"
+
+          },
+
+          {
+             "name": "openconfig-packet-match-types",
+
+              "revision": "2021-07-14",
+
+              "schema": "https://raw.githubusercontent.com/openconfig/public/master/release/models/acl/openconfig-packet-match-types.yang"
+
+           }
+
+        ]
+
+     }
+
 }
-]
-}
-}`
+`
 
