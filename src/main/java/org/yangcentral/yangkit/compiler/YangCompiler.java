@@ -20,11 +20,16 @@ import org.yangcentral.yangkit.parser.YangYinParser;
 import org.yangcentral.yangkit.utils.file.FileUtil;
 import org.yangcentral.yangkit.writter.YangFormatter;
 import org.yangcentral.yangkit.writter.YangWriter;
+import sun.security.ssl.SSLSocketFactoryImpl;
 
+import javax.net.ssl.*;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
+import java.net.Proxy;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,10 +103,65 @@ public class YangCompiler {
     }
     private  String urlInvoke(String url) throws IOException {
         URL catalogUrl = new URL(url);
-        URLConnection urlConnection = catalogUrl.openConnection();
+        URLConnection urlConnection;
+        if(settings.getProxy() != null){
+            String protocol = catalogUrl.getProtocol();
+            Proxy.Type proxyType = null;
+            if(protocol.equalsIgnoreCase("http") || protocol.equalsIgnoreCase("https")){
+                proxyType = Proxy.Type.HTTP;
+            } else {
+                proxyType = Proxy.Type.SOCKS;
+            }
+            Proxy proxy = new Proxy(proxyType,new InetSocketAddress(settings.getProxy().getHostName(),settings.getProxy().getPort()));
+            if(settings.getProxy().getAuthentication() != null){
+                Authenticator authenticator = new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(settings.getProxy().getAuthentication().getName(),
+                                settings.getProxy().getAuthentication().getPassword().toCharArray()
+                        );
+                    }
+                };
+                Authenticator.setDefault(authenticator);
+            }
+            urlConnection = catalogUrl.openConnection(proxy);
+        } else {
+            urlConnection = catalogUrl.openConnection();
+        }
+
         urlConnection.setConnectTimeout(600000);
         urlConnection.setReadTimeout(300000);
         if(urlConnection instanceof HttpURLConnection){
+            if(urlConnection instanceof HttpsURLConnection){
+                TrustManager[] trustManagers = new TrustManager[]{
+                        new X509TrustManager() {
+                            @Override
+                            public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+
+                            }
+
+                            @Override
+                            public X509Certificate[] getAcceptedIssuers() {
+                                return new X509Certificate[0];
+                            }
+                        }
+                };
+                try {
+                    SSLContext context = SSLContext.getInstance("TLS");
+                    context.init(null,trustManagers,null);
+                    ((HttpsURLConnection) urlConnection).setSSLSocketFactory(context.getSocketFactory());
+                } catch (NoSuchAlgorithmException e) {
+                    throw new RuntimeException(e);
+                } catch (KeyManagementException e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
             HttpURLConnection httpURLConnection = (HttpURLConnection) urlConnection;
             httpURLConnection.setRequestMethod("GET");
             if(httpURLConnection.getResponseCode() != 200){

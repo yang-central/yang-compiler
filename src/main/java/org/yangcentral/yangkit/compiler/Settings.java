@@ -18,6 +18,8 @@ import java.util.List;
 public class Settings {
     private URI remoteRepository = URI.create("https://yangcatalog.org/api/");
     private String localRepository = System.getProperty("user.home") + File.separator + ".yang";
+
+    private Proxy proxy;
     private List<ModuleInfo> moduleInfos = new ArrayList<>();
 
     public URI getRemoteRepository() {
@@ -72,6 +74,14 @@ public class Settings {
         return null;
     }
 
+    public Proxy getProxy() {
+        return proxy;
+    }
+
+    public void setProxy(Proxy proxy) {
+        this.proxy = proxy;
+    }
+
     public static Settings parse(String str){
         Settings settings = new Settings();
         JsonElement element = JsonParser.parseString(str);
@@ -88,12 +98,21 @@ public class Settings {
         if(null != remoteRepository){
             settings.setRemoteRepository(URI.create(remoteRepository));
         }
-        JsonArray moduleInfos = settingInstance.get("module-info").getAsJsonArray();
-        for(int i= 0; i<moduleInfos.size();i++){
-            JsonElement moduleElement = moduleInfos.get(i);
-            ModuleInfo moduleInfo = ModuleInfo.parse(moduleElement);
-            settings.moduleInfos.add(moduleInfo);
+        JsonElement proxyElement = settingInstance.get("proxy");
+        if(proxyElement != null){
+            Proxy proxy = Proxy.parse(proxyElement);
+            settings.setProxy(proxy);
         }
+        JsonElement moduleInfosElement = settingInstance.get("module-info");
+        if(moduleInfosElement != null){
+            JsonArray moduleInfos = moduleInfosElement.getAsJsonArray();
+            for(int i= 0; i<moduleInfos.size();i++){
+                JsonElement moduleElement = moduleInfos.get(i);
+                ModuleInfo moduleInfo = ModuleInfo.parse(moduleElement);
+                settings.moduleInfos.add(moduleInfo);
+            }
+        }
+
         return settings;
     }
 }
