@@ -90,14 +90,21 @@ public class Settings {
         }
         JsonObject jsonObject = element.getAsJsonObject();
         JsonObject settingInstance = jsonObject.get("settings").getAsJsonObject();
-        String localRepository = settingInstance.get("local-repository").getAsString();
-        if(null != localRepository){
-            settings.setLocalRepository(localRepository);
+        JsonElement localElement = settingInstance.get("local-repository");
+        if(localElement != null){
+            String localRepository = localElement.getAsString();
+            if(null != localRepository){
+                settings.setLocalRepository(localRepository);
+            }
         }
-        String remoteRepository = settingInstance.get("remote-repository").getAsString();
-        if(null != remoteRepository){
-            settings.setRemoteRepository(URI.create(remoteRepository));
+        JsonElement remoteElement = settingInstance.get("remote-repository");
+        if(remoteElement != null){
+            String remoteRepository = remoteElement.getAsString();
+            if(null != remoteRepository){
+                settings.setRemoteRepository(URI.create(remoteRepository));
+            }
         }
+
         JsonElement proxyElement = settingInstance.get("proxy");
         if(proxyElement != null){
             Proxy proxy = Proxy.parse(proxyElement);
