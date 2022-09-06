@@ -1,5 +1,9 @@
 package org.yangcentral.yangkit.compiler;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.dom4j.DocumentException;
 import org.yangcentral.yangkit.base.YangBuiltinKeyword;
 import org.yangcentral.yangkit.base.YangElement;
@@ -17,10 +21,12 @@ import org.yangcentral.yangkit.parser.YangParser;
 import org.yangcentral.yangkit.parser.YangParserEnv;
 import org.yangcentral.yangkit.parser.YangParserException;
 import org.yangcentral.yangkit.parser.YangYinParser;
+import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
+import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
 import org.yangcentral.yangkit.utils.file.FileUtil;
 import org.yangcentral.yangkit.writter.YangFormatter;
 import org.yangcentral.yangkit.writter.YangWriter;
-import sun.security.ssl.SSLSocketFactoryImpl;
+
 
 import javax.net.ssl.*;
 import java.io.*;
@@ -32,6 +38,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author : frank feng
@@ -42,7 +51,34 @@ public class YangCompiler {
     private Settings settings;
     private File yang;
 
+    private Map<String,PluginInfo> pluginInfos = new ConcurrentHashMap<String,PluginInfo>();
+
+    private Builder builder;
+
     public YangCompiler() {
+    }
+
+    public Builder getBuilder() {
+        return builder;
+    }
+
+    public void setBuilder(Builder builder) {
+        this.builder = builder;
+    }
+
+    public PluginInfo getPluginInfo(String name){
+        if(pluginInfos.isEmpty()){
+            return null;
+        }
+        return pluginInfos.get(name);
+    }
+
+    public boolean addPluginInfo(PluginInfo pluginInfo){
+        if(getPluginInfo(pluginInfo.getPluginName()) != null){
+            return false;
+        }
+        pluginInfos.put(pluginInfo.getPluginName(),pluginInfo);
+        return true;
     }
 
     public Settings getSettings() {
@@ -370,10 +406,47 @@ public class YangCompiler {
         }
     }
 
+    private static void preparePlugins(YangCompiler yangCompiler) throws IOException {
+        File pluginsFile = new File("src/main/resources/plugins.json");
+        if(pluginsFile.exists()){
+            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
+            for(PluginInfo pluginInfo:pluginInfos){
+                yangCompiler.addPluginInfo(pluginInfo);
+            }
+        }
+        pluginsFile = new File("plugins.json");
+        if(pluginsFile.exists()){
+            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
+            for(PluginInfo pluginInfo:pluginInfos){
+                yangCompiler.addPluginInfo(pluginInfo);
+            }
+        }
+
+
+    }
+    private static List<PluginInfo> parsePlugins(String str){
+        List<PluginInfo> pluginInfos = new ArrayList<>();
+        JsonElement pluginsElement = JsonParser.parseString(str);
+        JsonObject jsonObject = pluginsElement.getAsJsonObject();
+        JsonObject pluginsObject = jsonObject.get("plugins").getAsJsonObject();
+        JsonArray pluginList = pluginsObject.getAsJsonArray("plugin");
+        for(int i=0; i< pluginList.size();i++){
+            JsonElement pluginElement = pluginList.get(i);
+            PluginInfo pluginInfo = PluginInfo.parse(pluginElement);
+            pluginInfos.add(pluginInfo);
+        }
+        return pluginInfos;
+    }
+
+    private static Builder prepareBuilder(String str){
+        JsonElement jsonElement = JsonParser.parseString(str);
+        return Builder.parse(jsonElement);
+    }
     public static void main(String args[]) throws IOException {
         String yangdir = null;
         String settingsfile = null;
         boolean install = false;
+        Properties compilerProps = new Properties();
         for(String arg:args){
             String[] paras = arg.split("=");
             if(paras.length ==2){
@@ -390,10 +463,7 @@ public class YangCompiler {
                 }
             }
         }
-        if(yangdir == null){
-            System.out.println("no yang directory!");
-            System.out.println("Usage: yang-compiler yang={yang directory} [settings={settings.json}] [install]");
-        }
+//
         String defaultSettingsfile = System.getProperty("user.home") + File.separator + ".yang" + File.separator + "settings.json";
         YangCompiler compiler = new YangCompiler();
         Settings settings = null;
@@ -410,9 +480,64 @@ public class YangCompiler {
         }
 
         compiler.setSettings(settings);
+        File builderFile = new File("build.json");
+        if(builderFile.exists()){
+            Builder builder = prepareBuilder(FileUtil.readFile2String(builderFile));
+            compiler.setBuilder(builder);
+            if(yangdir == null){
+                yangdir = builder.getYangDir();
+            }
+        }
+        if(yangdir == null){
+            yangdir = "yang";
+            //System.out.println("no yang directory!");
+            //System.out.println("Usage: yang-compiler yang={yang directory} [settings={settings.json}] [install]");
+            return;
+        }
+        File yangDirFile = new File(yangdir);
+        if(!yangDirFile.exists()){
+            System.out.println("yang directory is not exist!");
+            return;
+        }
         compiler.setYang(new File(yangdir));
+        compilerProps.setProperty("yang",yangdir);
+        if(settings.getLocalRepository() != null){
+            compilerProps.setProperty("local-repository",settings.getLocalRepository());
+        }
+
+        if(settings.getRemoteRepository() != null){
+            compilerProps.setProperty("remote-repository",settings.getRemoteRepository().toString());
+        }
+
+        preparePlugins(compiler);
+
         YangSchemaContext schemaContext = compiler.compile();
         ValidatorResult validatorResult = schemaContext.validate();
+        if(compiler.getBuilder() != null){
+            for(PluginBuilder pluginBuilder:compiler.getBuilder().getPlugins()){
+                PluginInfo pluginInfo = compiler.getPluginInfo(pluginBuilder.getName());
+                if(null == pluginInfo){
+                    System.out.println("can not find a plugin named:"+ pluginBuilder.getName());
+                    continue;
+                }
+                YangCompilerPlugin plugin = pluginInfo.getPlugin();
+                try {
+                    List<YangCompilerPluginParameter> parameters = new ArrayList<>();
+                    if(!pluginBuilder.getParameters().isEmpty()){
+                        for(ParameterBuilder parameterBuilder: pluginBuilder.getParameters()){
+                            YangCompilerPluginParameter parameter = plugin.getParameter(compilerProps,
+                                    parameterBuilder.getName(), parameterBuilder.getValue());
+                            if(parameter != null){
+                                parameters.add(parameter);
+                            }
+                        }
+                    }
+                    plugin.run(schemaContext,parameters);
+                } catch (YangCompilerException e) {
+                    System.out.println("[ERROR]"+e.getMessage());
+                }
+            }
+        }
         ValidatorResultBuilder validatorResultBuilder = new ValidatorResultBuilder();
         List<ValidatorRecord<?,?>> records = validatorResult.getRecords();
         for(ValidatorRecord<?,?> record:records){

@@ -1,0 +1,17 @@
+{
+  "plugins": {
+    "plugin": [
+      {
+        "name": "validator_plugin",
+        "class": "org.yangcentral.yangkit.plugin.validator.YangValidator",
+        "description": "a plugin for validating yang files",
+        "parameter": [
+          {
+            "name": "output",
+            "description": "the output directory."
+          }
+        ]
+      }
+    ]
+  }
+}

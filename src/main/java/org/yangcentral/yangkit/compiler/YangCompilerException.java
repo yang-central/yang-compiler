@@ -13,4 +13,8 @@ public class YangCompilerException extends Exception{
         super(message);
         this.module = module;
     }
+
+    public YangCompilerException(String message) {
+        super(message);
+    }
 }
