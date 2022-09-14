@@ -2,13 +2,32 @@
   "plugins": {
     "plugin": [
       {
-        "name": "validator_plugin",
+        "name": "schema_validator",
         "class": "org.yangcentral.yangkit.plugin.validator.YangValidator",
         "description": "a plugin for validating yang files",
         "parameter": [
           {
             "name": "output",
             "description": "the output directory."
+          }
+        ]
+      },
+      {
+        "name": "yangtree_generator",
+        "class": "org.yangcentral.yangkit.plugin.yangtree.YangTreeGenerator",
+        "description": "a plugin for generating yang tree",
+        "parameter": [
+          {
+            "name": "output",
+            "description": "the output directory for generated yang tree."
+          },
+          {
+            "name": "line-length",
+            "description": "integer,default is 72, a line max length."
+          },
+          {
+            "name": "expand-grouping",
+            "description": "boolean,default is true,indicate whether expand grouping"
           }
         ]
       }
