@@ -24,10 +24,12 @@ import org.yangcentral.yangkit.parser.YangYinParser;
 import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
 import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
 import org.yangcentral.yangkit.utils.file.FileUtil;
+import org.yangcentral.yangkit.utils.url.URLUtil;
 import org.yangcentral.yangkit.writter.YangFormatter;
 import org.yangcentral.yangkit.writter.YangWriter;
 
 
+import javax.annotation.Nullable;
 import javax.net.ssl.*;
 import java.io.*;
 import java.net.*;
@@ -139,7 +141,8 @@ public class YangCompiler {
     }
     private  String urlInvoke(String url) throws IOException {
         URL catalogUrl = new URL(url);
-        URLConnection urlConnection;
+        Proxy proxy= null;
+        Authenticator authenticator =null;
         if(settings.getProxy() != null){
             String protocol = catalogUrl.getProtocol();
             Proxy.Type proxyType = null;
@@ -148,9 +151,9 @@ public class YangCompiler {
             } else {
                 proxyType = Proxy.Type.SOCKS;
             }
-            Proxy proxy = new Proxy(proxyType,new InetSocketAddress(settings.getProxy().getHostName(),settings.getProxy().getPort()));
+            proxy = new Proxy(proxyType,new InetSocketAddress(settings.getProxy().getHostName(),settings.getProxy().getPort()));
             if(settings.getProxy().getAuthentication() != null){
-                Authenticator authenticator = new Authenticator() {
+                authenticator = new Authenticator() {
                     @Override
                     protected PasswordAuthentication getPasswordAuthentication() {
                         return new PasswordAuthentication(settings.getProxy().getAuthentication().getName(),
@@ -160,61 +163,9 @@ public class YangCompiler {
                 };
                 Authenticator.setDefault(authenticator);
             }
-            urlConnection = catalogUrl.openConnection(proxy);
-        } else {
-            urlConnection = catalogUrl.openConnection();
+
         }
-
-        urlConnection.setConnectTimeout(600000);
-        urlConnection.setReadTimeout(300000);
-        if(urlConnection instanceof HttpURLConnection){
-            if(urlConnection instanceof HttpsURLConnection){
-                TrustManager[] trustManagers = new TrustManager[]{
-                        new X509TrustManager() {
-                            @Override
-                            public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-                            }
-
-                            @Override
-                            public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
-                            }
-
-                            @Override
-                            public X509Certificate[] getAcceptedIssuers() {
-                                return new X509Certificate[0];
-                            }
-                        }
-                };
-                try {
-                    SSLContext context = SSLContext.getInstance("TLS");
-                    context.init(null,trustManagers,null);
-                    ((HttpsURLConnection) urlConnection).setSSLSocketFactory(context.getSocketFactory());
-                } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException(e);
-                } catch (KeyManagementException e) {
-                    throw new RuntimeException(e);
-                }
-
-            }
-            HttpURLConnection httpURLConnection = (HttpURLConnection) urlConnection;
-            httpURLConnection.setRequestMethod("GET");
-            if(httpURLConnection.getResponseCode() != 200){
-                throw new RuntimeException("GET request:"+url+" failed with error code="+ httpURLConnection.getResponseCode());
-            }
-        }
-
-        StringBuilder sb = new StringBuilder();
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-        String output;
-        while((output = bufferedReader.readLine())!= null){
-            sb.append(output);
-            sb.append("\n");
-        }
-        bufferedReader.close();
-        urlConnection.getInputStream().close();
-        return sb.toString();
+        return URLUtil.URLGet(catalogUrl,proxy,authenticator,settings.getToken());
     }
     private File getFromLocal(ModuleId moduleId){
         File localRepository = new File(settings.getLocalRepository());
@@ -384,7 +335,7 @@ public class YangCompiler {
             }
         }
     }
-    public YangSchemaContext compile(){
+    public YangSchemaContext buildSchemaContext(){
         if(!yang.exists()){
             return null;
         }
@@ -406,66 +357,8 @@ public class YangCompiler {
         }
     }
 
-    private static void preparePlugins(YangCompiler yangCompiler) throws IOException {
-        File pluginsFile = new File("src/main/resources/plugins.json");
-        if(pluginsFile.exists()){
-            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
-            for(PluginInfo pluginInfo:pluginInfos){
-                yangCompiler.addPluginInfo(pluginInfo);
-            }
-        }
-        pluginsFile = new File("plugins.json");
-        if(pluginsFile.exists()){
-            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
-            for(PluginInfo pluginInfo:pluginInfos){
-                yangCompiler.addPluginInfo(pluginInfo);
-            }
-        }
-
-
-    }
-    private static List<PluginInfo> parsePlugins(String str){
-        List<PluginInfo> pluginInfos = new ArrayList<>();
-        JsonElement pluginsElement = JsonParser.parseString(str);
-        JsonObject jsonObject = pluginsElement.getAsJsonObject();
-        JsonObject pluginsObject = jsonObject.get("plugins").getAsJsonObject();
-        JsonArray pluginList = pluginsObject.getAsJsonArray("plugin");
-        for(int i=0; i< pluginList.size();i++){
-            JsonElement pluginElement = pluginList.get(i);
-            PluginInfo pluginInfo = PluginInfo.parse(pluginElement);
-            pluginInfos.add(pluginInfo);
-        }
-        return pluginInfos;
-    }
-
-    private static Builder prepareBuilder(String str){
-        JsonElement jsonElement = JsonParser.parseString(str);
-        return Builder.parse(jsonElement);
-    }
-    public static void main(String args[]) throws IOException {
-        String yangdir = null;
-        String settingsfile = null;
-        boolean install = false;
-        Properties compilerProps = new Properties();
-        for(String arg:args){
-            String[] paras = arg.split("=");
-            if(paras.length ==2){
-                String para = paras[0];
-                String value = paras[1];
-                if(para.equals("yang")){
-                    yangdir = value;
-                }else if(para.equals("settings")){
-                    settingsfile = value;
-                }
-            } else {
-                if(arg.equals("install")){
-                    install = true;
-                }
-            }
-        }
-//
+    public void compile(@Nullable String yangdir,@Nullable String settingsfile,boolean install) throws IOException {
         String defaultSettingsfile = System.getProperty("user.home") + File.separator + ".yang" + File.separator + "settings.json";
-        YangCompiler compiler = new YangCompiler();
         Settings settings = null;
         if(settingsfile != null){
             settings = Settings.parse(FileUtil.readFile2String(settingsfile));
@@ -479,11 +372,11 @@ public class YangCompiler {
             }
         }
 
-        compiler.setSettings(settings);
+        setSettings(settings);
         File builderFile = new File("build.json");
         if(builderFile.exists()){
             Builder builder = prepareBuilder(FileUtil.readFile2String(builderFile));
-            compiler.setBuilder(builder);
+            setBuilder(builder);
             if(yangdir == null){
                 yangdir = builder.getYangDir();
             }
@@ -499,7 +392,8 @@ public class YangCompiler {
             System.out.println("yang directory is not exist!");
             return;
         }
-        compiler.setYang(new File(yangdir));
+        setYang(new File(yangdir));
+        Properties compilerProps = new Properties();
         compilerProps.setProperty("yang",yangdir);
         if(settings.getLocalRepository() != null){
             compilerProps.setProperty("local-repository",settings.getLocalRepository());
@@ -509,13 +403,13 @@ public class YangCompiler {
             compilerProps.setProperty("remote-repository",settings.getRemoteRepository().toString());
         }
 
-        preparePlugins(compiler);
+        preparePlugins(this);
 
-        YangSchemaContext schemaContext = compiler.compile();
+        YangSchemaContext schemaContext = buildSchemaContext();
         ValidatorResult validatorResult = schemaContext.validate();
-        if(compiler.getBuilder() != null){
-            for(PluginBuilder pluginBuilder:compiler.getBuilder().getPlugins()){
-                PluginInfo pluginInfo = compiler.getPluginInfo(pluginBuilder.getName());
+        if(getBuilder() != null){
+            for(PluginBuilder pluginBuilder:getBuilder().getPlugins()){
+                PluginInfo pluginInfo = getPluginInfo(pluginBuilder.getName());
                 if(null == pluginInfo){
                     System.out.println("can not find a plugin named:"+ pluginBuilder.getName());
                     continue;
@@ -567,6 +461,66 @@ public class YangCompiler {
             }
         }
         System.out.println(validatorResult);
+    }
+
+    private static void preparePlugins(YangCompiler yangCompiler) throws IOException {
+        File pluginsFile = new File("src/main/resources/plugins.json");
+        if(pluginsFile.exists()){
+            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
+            for(PluginInfo pluginInfo:pluginInfos){
+                yangCompiler.addPluginInfo(pluginInfo);
+            }
+        }
+        pluginsFile = new File("plugins.json");
+        if(pluginsFile.exists()){
+            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
+            for(PluginInfo pluginInfo:pluginInfos){
+                yangCompiler.addPluginInfo(pluginInfo);
+            }
+        }
+
+
+    }
+    private static List<PluginInfo> parsePlugins(String str){
+        List<PluginInfo> pluginInfos = new ArrayList<>();
+        JsonElement pluginsElement = JsonParser.parseString(str);
+        JsonObject jsonObject = pluginsElement.getAsJsonObject();
+        JsonObject pluginsObject = jsonObject.get("plugins").getAsJsonObject();
+        JsonArray pluginList = pluginsObject.getAsJsonArray("plugin");
+        for(int i=0; i< pluginList.size();i++){
+            JsonElement pluginElement = pluginList.get(i);
+            PluginInfo pluginInfo = PluginInfo.parse(pluginElement);
+            pluginInfos.add(pluginInfo);
+        }
+        return pluginInfos;
+    }
+
+    private static Builder prepareBuilder(String str){
+        JsonElement jsonElement = JsonParser.parseString(str);
+        return Builder.parse(jsonElement);
+    }
+    public static void main(String args[]) throws IOException {
+        String yangdir = null;
+        String settingsfile = null;
+        boolean install = false;
+        for(String arg:args){
+            String[] paras = arg.split("=");
+            if(paras.length ==2){
+                String para = paras[0];
+                String value = paras[1];
+                if(para.equals("yang")){
+                    yangdir = value;
+                }else if(para.equals("settings")){
+                    settingsfile = value;
+                }
+            } else {
+                if(arg.equals("install")){
+                    install = true;
+                }
+            }
+        }
+        YangCompiler compiler = new YangCompiler();
+        compiler.compile(yangdir,settingsfile,install);
     }
 
 }

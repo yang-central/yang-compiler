@@ -20,6 +20,8 @@ public class Settings {
     private String localRepository = System.getProperty("user.home") + File.separator + ".yang";
 
     private Proxy proxy;
+
+    private String token;
     private List<ModuleInfo> moduleInfos = new ArrayList<>();
 
     public URI getRemoteRepository() {
@@ -82,6 +84,14 @@ public class Settings {
         this.proxy = proxy;
     }
 
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
     public static Settings parse(String str){
         Settings settings = new Settings();
         JsonElement element = JsonParser.parseString(str);
@@ -109,6 +119,10 @@ public class Settings {
         if(proxyElement != null){
             Proxy proxy = Proxy.parse(proxyElement);
             settings.setProxy(proxy);
+        }
+        JsonElement tokenElement = settingInstance.get("token");
+        if(tokenElement != null){
+            settings.setToken(tokenElement.getAsString());
         }
         JsonElement moduleInfosElement = settingInstance.get("module-info");
         if(moduleInfosElement != null){

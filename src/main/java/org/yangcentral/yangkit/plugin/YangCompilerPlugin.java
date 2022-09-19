@@ -8,7 +8,7 @@ import java.util.Properties;
 
 public interface YangCompilerPlugin {
 
-    YangCompilerPluginParameter getParameter(Properties compilerProps,String name, String value);
+    YangCompilerPluginParameter getParameter(Properties compilerProps,String name, String value) throws YangCompilerException;
 
     void run(YangSchemaContext schemaContext, List<YangCompilerPluginParameter> parameters) throws YangCompilerException;
 

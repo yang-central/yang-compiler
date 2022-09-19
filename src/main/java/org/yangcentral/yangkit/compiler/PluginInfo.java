@@ -6,8 +6,12 @@ import com.google.gson.JsonObject;
 import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
 import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
 
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,9 +54,23 @@ public class PluginInfo {
     public static PluginInfo parse(JsonElement jsonElement){
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         String pluginName = jsonObject.get("name").getAsString();
+        String classPath = null;
+        JsonElement classPathElement = jsonObject.get("class-path");
+        if(classPathElement != null){
+            classPath = classPathElement.getAsString();
+        }
         String className = jsonObject.get("class").getAsString();
         try {
-            Class<? extends YangCompilerPlugin> pluginClass = (Class<? extends YangCompilerPlugin>) Class.forName(className);
+            Class<? extends YangCompilerPlugin> pluginClass = null;
+            if(classPath != null && !classPath.trim().isEmpty()){
+                File f = new File(classPath);
+                URL[] cp = {f.toURI().toURL()};
+                URLClassLoader classLoader = new URLClassLoader(cp);
+                pluginClass = (Class<? extends YangCompilerPlugin>) classLoader.loadClass(className);
+            } else {
+                pluginClass = (Class<? extends YangCompilerPlugin>) Class.forName(className);
+            }
+
             Constructor<?extends YangCompilerPlugin> constructor = pluginClass.getConstructor();
             YangCompilerPlugin yangCompilerPlugin = constructor.newInstance();
             PluginInfo pluginInfo = new PluginInfo(pluginName,yangCompilerPlugin);
@@ -85,6 +103,8 @@ public class PluginInfo {
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
