@@ -38,10 +38,7 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -385,11 +382,11 @@ public class YangCompiler {
             yangdir = "yang";
             //System.out.println("no yang directory!");
             //System.out.println("Usage: yang-compiler yang={yang directory} [settings={settings.json}] [install]");
-            return;
+            //return;
         }
         File yangDirFile = new File(yangdir);
         if(!yangDirFile.exists()){
-            System.out.println("yang directory is not exist!");
+            System.out.println("yang directory:"+ yangdir+" is not exist!");
             return;
         }
         setYang(new File(yangdir));
@@ -426,7 +423,9 @@ public class YangCompiler {
                             }
                         }
                     }
+                    System.out.println("【INFO】call plugin:" + pluginInfo.getPluginName() + " ...");
                     plugin.run(schemaContext,parameters);
+                    System.out.println("ok.");
                 } catch (YangCompilerException e) {
                     System.out.println("[ERROR]"+e.getMessage());
                 }
@@ -464,14 +463,16 @@ public class YangCompiler {
     }
 
     private static void preparePlugins(YangCompiler yangCompiler) throws IOException {
-        File pluginsFile = new File("src/main/resources/plugins.json");
-        if(pluginsFile.exists()){
-            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
+        InputStream inputStream = yangCompiler.getClass().getResourceAsStream("/plugins.json");
+        Scanner s = new Scanner(inputStream).useDelimiter("\\A");
+        String result = s.hasNext()?s.next():"";
+        if(!result.isEmpty()){
+            List<PluginInfo> pluginInfos = parsePlugins(result);
             for(PluginInfo pluginInfo:pluginInfos){
                 yangCompiler.addPluginInfo(pluginInfo);
             }
         }
-        pluginsFile = new File("plugins.json");
+        File pluginsFile = new File("plugins.json");
         if(pluginsFile.exists()){
             List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
             for(PluginInfo pluginInfo:pluginInfos){
