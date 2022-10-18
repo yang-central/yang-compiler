@@ -29,18 +29,22 @@ plugin to extend customized functions.
 * JDK or JRE 1.8 or above
 
 ### Obtain code
-git clone https://github.com/yang-central/yang-compiler.git
-
+```
+# git clone https://github.com/yang-central/yang-compiler.git
+```
 ### build code
-mvn clean install
-
+```
+# cd yang-compiler
+# mvn clean install
+```
 it will generate yang-compiler-1.0-SNAPSHOT.jar and libs directory under the directory target
 
 copy yang-compiler-1.0-SNAPSHOT.jar and libs to anywhere in your computer.
 
 ## Usage:
-java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_settings.json_> ] [install]
-
+```
+# java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_settings.json_> ] [install]
+```
 ### **Parameters**
 1. yang: optional, source directory for yang files, if not present, the yang directory of build.json will be used, and if yang directory of build.json is not present, the 'yang' directory of work directory will be used.
 2. settings: optional, the path of settings.json. {user.home}/.yang/settings.json is default. If no settings.json, the default settings will be used.
@@ -99,8 +103,8 @@ java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_
 ```
 ## Edit build.json
 The build.json MUST be placed to work directory. And the example is listed below:
-
-`{
+```
+{
 
     "build": {
 
@@ -128,15 +132,15 @@ The build.json MUST be placed to work directory. And the example is listed below
    
     }
 
- }`
-
+ }
+ ```
 ## develop plugin
 1. specified a unique plugin name. e.g. yang-tree-generator
 2. write a java class implements YangCompilerPlugin.
    @see [YangValidator](src/main/java/org/yangcentral/yangkit/plugin/validator/YangValidator.java)
 3. add plugin information in plugins.json(in src/main/resource or in work directory)
-
-    `{
+    `
+    {
 
            "plugins": {
    
@@ -168,4 +172,5 @@ The build.json MUST be placed to work directory. And the example is listed below
    
            }
    
-    }`
+    }
+    `
