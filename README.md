@@ -139,7 +139,7 @@ The build.json MUST be placed to work directory. And the example is listed below
 2. write a java class implements YangCompilerPlugin.
    @see [YangValidator](src/main/java/org/yangcentral/yangkit/plugin/validator/YangValidator.java)
 3. add plugin information in plugins.json(in src/main/resource or in work directory)
-    `
+ ```
     {
 
            "plugins": {
@@ -173,4 +173,4 @@ The build.json MUST be placed to work directory. And the example is listed below
            }
    
     }
-    `
+ ```
