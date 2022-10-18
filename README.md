@@ -47,7 +47,7 @@ java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_
 3. install: optional, if it's not present, the yang files to be complied will not be installed, if it's present, all yang files which is correct will be 
     installed to local repository. 
 ### settings.json example:
-`
+```
  {
    
     "settings": {
@@ -96,7 +96,7 @@ java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_
      }
 
 }
-
+```
 ## Edit build.json
 The build.json MUST be placed to work directory. And the example is listed below:
 
