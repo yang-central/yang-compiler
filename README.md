@@ -1,15 +1,11 @@
 # yang-compiler
 Yang compiler is a tool based on [YangKit](https://github.com/yang-central/yangkit), it's designed to solve the problem of YANG files compilation dependencies.
-For example, after a YANG module is written, if you want to validate it, you will find you have to search all other YANG files that the module depends on. It's very
-difficult because dependencies are chained, and the chain of dependencies for a YANG module may be very long. In addition,
-where these dependent YANG files are archived and how to obtain these YANG files are also difficult problems. This brings great inconvenience to users and 
+For example, after a YANG module is written, if you want to validate it, you need to add all missing YANG module dependencies to your path. This could be troublesome because dependencies are chained, and the chain of dependencies for a YANG module may be very long. In addition,
+where these dependented YANG files are archived and how to obtain these YANG files are also difficult problems. This brings great inconvenience to users and 
 affects their enthusiasm for using YANG.
 
-Yang compiler provide a mechanism to get the dependencies automatically.Firstly, it will search the dependencies from the directory to be complied, if not found, 
-it will search these YANG files from local repository(it's defined in settings.json or default directory), and if it's not found also,
-it will search the dependencies from module information defined in settings.json(if available), and according to the
-information to download the YANG files. if it's still not found, it will search the dependencies for remote repository(defined in settings.json or 
-[yangcatalog](https://yangcatalog.org/api/) default). If the dependencies are downloaded, it will save to local repository.
+Yang compiler provide a mechanism to get the dependencies automatically when compiling YANG modules. Firstly, it will search the dependencies from the target directory to be complied, if not found, it will search these YANG files from local repository(it's defined in settings.json or default directory), and if it's not found also, it will search the dependencies from module information defined in settings.json(if available), and according to the information to download the YANG files. if it's still not found, it will search the dependencies for remote repository(defined in settings.json or 
+[yangcatalog](https://yangcatalog.org/api/) by default). If the dependencies are fetched, it will be saved into local repository.
 
 Using Yang compiler, you can compile any YANG file regardless where it's dependencies are. Yang compiler allow developer to develop 
 plugin to extend customized functions.
@@ -46,19 +42,18 @@ copy yang-compiler-1.0-SNAPSHOT.jar and libs to anywhere in your computer.
 # java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_settings.json_> ] [install]
 ```
 ### **Parameters**
-1. yang: optional, source directory for yang files, if not present, the yang directory of build.json will be used, and if yang directory of build.json is not present, the 'yang' directory of work directory will be used.
+1. yang: optional, local directory for yang modules to be compiled, if not present, the 'yang' directory of build.json will be used.
 2. settings: optional, the path of settings.json. {user.home}/.yang/settings.json is default. If no settings.json, the default settings will be used.
-3. install: optional, if it's not present, the yang files to be complied will not be installed, if it's present, all yang files which is correct will be 
-    installed to local repository. 
+3. install: optional, if it's not present, the yang files to be complied will not be copied into local repo directory, if it's present, all yang files which is successfully compiled will be copied into local repository. 
 ### settings.json example:
 ```
  {
    
     "settings": {
 
-      "local-repository": "/Users/llly/yang",
+      "local-repository": "/Users/llly/yang", //local repo to find the missing yang module dependencies
 
-      "remote-repository": "https://yangcatalog.org/api/",
+      "remote-repository": "https://yangcatalog.org/api/", //default remote repo to fetch the missing yang module dependencies unless specified by "module-info"
       
       "proxy: {
          
@@ -75,7 +70,7 @@ copy yang-compiler-1.0-SNAPSHOT.jar and libs to anywhere in your computer.
        },
 
        "module-info": [
-
+//remote address to fetch the missing yang module dependencies 
          {
            
             "name": "openconfig-acl",
@@ -108,7 +103,7 @@ The build.json MUST be placed to work directory. And the example is listed below
 
     "build": {
 
-      "yang": "yang",
+      "yang": "yang",// target path to compile YANG files
  
       "plugin": [
         {
