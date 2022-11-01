@@ -423,7 +423,7 @@ public class YangCompiler {
                             }
                         }
                     }
-                    System.out.println("【INFO】call plugin:" + pluginInfo.getPluginName() + " ...");
+                    System.out.println("[INFO]call plugin:" + pluginInfo.getPluginName() + " ...");
                     plugin.run(schemaContext,parameters);
                     System.out.println("ok.");
                 } catch (YangCompilerException e) {
