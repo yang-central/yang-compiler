@@ -52,7 +52,7 @@ copy yang-compiler-1.0-SNAPSHOT.jar and libs to anywhere in your computer.
     "settings": {
 
       "local-repository": "/Users/llly/yang", 
-      //local repo to find the missing yang module dependencies
+      //local repo directrory to find the missing yang module dependencies, the default directory is {user.home}/.yang 
 
       "remote-repository": "https://yangcatalog.org/api/", 
       //default remote repo to fetch the missing yang module dependencies unless specified by "module-info"
