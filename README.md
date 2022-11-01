@@ -46,7 +46,7 @@ copy yang-compiler-1.0-SNAPSHOT.jar and libs to anywhere in your computer.
 2. settings: optional, the path of settings.json. {user.home}/.yang/settings.json is default. If no settings.json, the default settings will be used.
 3. install: optional, if it's not present, the yang files to be complied will not be copied into local repo directory, if it's present, all yang files which is successfully compiled will be copied into local repository. 
 ### settings.json example:
-```
+```json
  {
    
     "settings": {
@@ -72,7 +72,7 @@ copy yang-compiler-1.0-SNAPSHOT.jar and libs to anywhere in your computer.
        },
 
        "module-info": [
-//remote address to fetch the missing yang module dependencies 
+         //remote address to fetch the missing yang module dependencies 
          {
            
             "name": "openconfig-acl",
@@ -100,7 +100,7 @@ copy yang-compiler-1.0-SNAPSHOT.jar and libs to anywhere in your computer.
 ```
 ## Edit build.json
 The build.json MUST be placed to work directory. And the example is listed below:
-```
+```json
 {
 
     "build": {
@@ -136,7 +136,7 @@ The build.json MUST be placed to work directory. And the example is listed below
 2. write a java class implements YangCompilerPlugin.
    @see [YangValidator](src/main/java/org/yangcentral/yangkit/plugin/validator/YangValidator.java)
 3. add plugin information in plugins.json(in src/main/resource or in work directory)
- ```
+ ```json
     {
 
            "plugins": {
