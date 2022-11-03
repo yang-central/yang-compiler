@@ -3,6 +3,7 @@ package org.yangcentral.yangkit.plugin.yangtree;
 
 import org.yangcentral.yangkit.common.api.QName;
 import org.yangcentral.yangkit.common.api.validate.ValidatorResult;
+import org.yangcentral.yangkit.compiler.Settings;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.restriction.LeafRef;
 import org.yangcentral.yangkit.model.api.schema.SchemaTreeType;
@@ -479,7 +480,7 @@ public class YangTreeGenerator implements YangCompilerPlugin {
     }
 
     @Override
-    public void run(YangSchemaContext schemaContext, List<YangCompilerPluginParameter> parameters) throws YangCompilerException {
+    public void run(YangSchemaContext schemaContext, Settings settings, List<YangCompilerPluginParameter> parameters) throws YangCompilerException {
         for(YangCompilerPluginParameter parameter:parameters){
             if(parameter.getName().equals("output")){
                 output = (String) parameter.getValue();

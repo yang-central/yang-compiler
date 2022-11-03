@@ -73,6 +73,9 @@ public class YangCompiler {
     }
 
     public boolean addPluginInfo(PluginInfo pluginInfo){
+        if(pluginInfo == null){
+            return false;
+        }
         if(getPluginInfo(pluginInfo.getPluginName()) != null){
             return false;
         }
@@ -354,7 +357,7 @@ public class YangCompiler {
         }
     }
 
-    public void compile(@Nullable String yangdir,@Nullable String settingsfile,boolean install) throws IOException {
+    public void compile(@Nullable String yangdir,@Nullable String settingsfile,boolean install) throws IOException, URISyntaxException {
         String defaultSettingsfile = System.getProperty("user.home") + File.separator + ".yang" + File.separator + "settings.json";
         Settings settings = null;
         if(settingsfile != null){
@@ -365,7 +368,16 @@ public class YangCompiler {
                 settings = Settings.parse(FileUtil.readFile2String(defaultSettingsfile));
             }
             else {
-                settings = new Settings();
+                File programDir = new File(this.getClass().getProtectionDomain().getCodeSource().getLocation()
+                        .toURI());
+                File programSettings = new File(programDir.getParentFile(),"settings.json");
+                if(programSettings.exists()){
+                    settings = Settings.parse(FileUtil.readFile2String(programSettings));
+                }
+                else {
+                    settings = new Settings();
+                }
+
             }
         }
 
@@ -424,7 +436,7 @@ public class YangCompiler {
                         }
                     }
                     System.out.println("[INFO]call plugin:" + pluginInfo.getPluginName() + " ...");
-                    plugin.run(schemaContext,parameters);
+                    plugin.run(schemaContext,this.settings,parameters);
                     System.out.println("ok.");
                 } catch (YangCompilerException e) {
                     System.out.println("[ERROR]"+e.getMessage());
@@ -462,19 +474,27 @@ public class YangCompiler {
         System.out.println(validatorResult);
     }
 
-    private static void preparePlugins(YangCompiler yangCompiler) throws IOException {
+    private static void preparePlugins(YangCompiler yangCompiler) throws IOException, URISyntaxException {
         InputStream inputStream = yangCompiler.getClass().getResourceAsStream("/plugins.json");
         Scanner s = new Scanner(inputStream).useDelimiter("\\A");
         String result = s.hasNext()?s.next():"";
         if(!result.isEmpty()){
-            List<PluginInfo> pluginInfos = parsePlugins(result);
+            List<PluginInfo> pluginInfos = parsePlugins(null,result);
             for(PluginInfo pluginInfo:pluginInfos){
                 yangCompiler.addPluginInfo(pluginInfo);
             }
         }
-        File pluginsFile = new File("plugins.json");
+        File programDir = new File(yangCompiler.getClass().getProtectionDomain().getCodeSource().getLocation()
+                .toURI());
+        File pluginsDir = new File(programDir.getParentFile(),"plugins");
+        if(!pluginsDir.exists()){
+            System.out.println("[WARNING]plugins dir:"+ pluginsDir.getAbsolutePath() + " is not exists");
+            return;
+        }
+        File pluginsFile = new File(pluginsDir,"plugins.json");
         if(pluginsFile.exists()){
-            List<PluginInfo> pluginInfos = parsePlugins(FileUtil.readFile2String(pluginsFile));
+            System.out.println("[INFO]reading the information of plugins from:"+ pluginsFile.getAbsolutePath());
+            List<PluginInfo> pluginInfos = parsePlugins(pluginsFile,FileUtil.readFile2String(pluginsFile));
             for(PluginInfo pluginInfo:pluginInfos){
                 yangCompiler.addPluginInfo(pluginInfo);
             }
@@ -482,7 +502,7 @@ public class YangCompiler {
 
 
     }
-    private static List<PluginInfo> parsePlugins(String str){
+    private static List<PluginInfo> parsePlugins(File pluginsFile,String str){
         List<PluginInfo> pluginInfos = new ArrayList<>();
         JsonElement pluginsElement = JsonParser.parseString(str);
         JsonObject jsonObject = pluginsElement.getAsJsonObject();
@@ -490,7 +510,7 @@ public class YangCompiler {
         JsonArray pluginList = pluginsObject.getAsJsonArray("plugin");
         for(int i=0; i< pluginList.size();i++){
             JsonElement pluginElement = pluginList.get(i);
-            PluginInfo pluginInfo = PluginInfo.parse(pluginElement);
+            PluginInfo pluginInfo = PluginInfo.parse(pluginsFile,pluginElement);
             pluginInfos.add(pluginInfo);
         }
         return pluginInfos;
@@ -500,7 +520,7 @@ public class YangCompiler {
         JsonElement jsonElement = JsonParser.parseString(str);
         return Builder.parse(jsonElement);
     }
-    public static void main(String args[]) throws IOException {
+    public static void main(String args[]) throws IOException, URISyntaxException {
         String yangdir = null;
         String settingsfile = null;
         boolean install = false;

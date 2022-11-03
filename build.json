@@ -1,6 +1,6 @@
 {
   "build": {
-    "yang": "yang/8.21.0",
+    "yang": "yang/new",
     "plugin": [
       {
         "name": "yangtree_generator",
@@ -20,7 +20,7 @@
         "parameter": [
           {
             "name": "old-yang",
-            "value": "yang/8.20.1"
+            "value": "yang/old"
           },
           {
             "name": "compare-type",

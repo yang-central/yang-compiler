@@ -1,46 +1,49 @@
-# yang-compiler
+# **YANG Compiler**
+## Overview
 Yang compiler is a tool based on [YangKit](https://github.com/yang-central/yangkit), it's designed to solve the problem of YANG files compilation dependencies.
 For example, after a YANG module is written, if you want to validate it, you need to add all missing YANG module dependencies to your path. This could be troublesome because dependencies are chained, and the chain of dependencies for a YANG module may be very long. In addition,
-where these dependented YANG files are archived and how to obtain these YANG files are also difficult problems. This brings great inconvenience to users and 
+where these dependented YANG files are archived and how to obtain these YANG files are also difficult problems. This brings great inconvenience to users and
 affects their enthusiasm for using YANG.
 
-Yang compiler provide a mechanism to get the dependencies automatically when compiling YANG modules. Firstly, it will search the dependencies from the target directory to be complied, if not found, it will search these YANG files from local repository(it's defined in settings.json or default directory), and if it's not found also, it will search the dependencies from module information defined in settings.json(if available), and according to the information to download the YANG files. if it's still not found, it will search the dependencies for remote repository(defined in settings.json or 
+Yang compiler provide a mechanism to get the dependencies automatically when compiling YANG modules. Firstly, it will search the dependencies from the target directory to be complied, if not found, it will search these YANG files from local repository(it's defined in settings.json or default directory), and if it's not found also, it will search the dependencies from module information defined in settings.json(if available), and according to the information to download the YANG files. if it's still not found, it will search the dependencies for remote repository(defined in settings.json or
 [yangcatalog](https://yangcatalog.org/api/) by default). If the dependencies are fetched, it will be saved into local repository.
 
-Using Yang compiler, you can compile any YANG file regardless where it's dependencies are. Yang compiler allow developer to develop 
+Using Yang compiler, you can compile any YANG file regardless where it's dependencies are. Yang compiler allow developer to develop
 plugin to extend customized functions.
+## Architecture
+![yang-compiler](src/main/resources/yang-compiler.png)
 ## Specification
 * search and download dependencies automatically.
 * allow user to customize settings for compilation.
-  * customize local repository,{user.home}/.yang is default.
-  * customize remote repository, [yangcatalog](https://yangcatalog.org/api/) is default.
-  * support proxy.
-  * define module information directly if some modules are not in [yangcatalog](https://yangcatalog.org/api/).
+    * customize local repository,{user.home}/.yang is default.
+    * customize remote repository, [yangcatalog](https://yangcatalog.org/api/) is default.
+    * support proxy.
+    * define module information directly if some modules are not in [yangcatalog](https://yangcatalog.org/api/).
 * allow user to install yang files which are compiled OK.
 * allow developer to develop customized plugin.
 
 
 ## Installation
-### Prerequisites
+### &emsp;Prerequisites
 * JDK or JRE 1.8 or above
 
-### Obtain code
+### &emsp;Obtain code
 ```
 # git clone https://github.com/yang-central/yang-compiler.git
 ```
-### build code
+### &emsp;Build code
 ```
 # cd yang-compiler
 # mvn clean install
 ```
-it will generate yang-compiler-1.0-SNAPSHOT.jar and libs directory under the directory target.
+&emsp;it will generate yang-compiler-1.0-SNAPSHOT.jar and libs directory under the directory target.
 
-### build yang-compiler package
+### &emsp;Make application package for YANG compiler
 1.  create a directory in anywhere (of your computer), we may call it application directory. The name of directory should be yang-compiler-x.y.z(e.g., yang-compiler-1.0.0)
 2.  copy yang-compiler-1.0-SNAPSHOT.jar and libs to the application directory you created in previous step.
 3.  (optional)place settings.json into application directory if needed.
 4.  (optional)create a sub-directory named 'plugins' under application directory if external plugins are need, then place plugins.json into this directory.
-#### example of yang-compiler package
+#### &emsp;&emsp;Example of application package
 ```
 |--yang-compiler-1.0.0
    |--libs
@@ -50,7 +53,7 @@ it will generate yang-compiler-1.0-SNAPSHOT.jar and libs directory under the dir
    |--yang-compiler-1.0.0.jar
 ```
 
-## The specification of settings
+## Specification of settings
 1. local-repository: local repo directory to find the missing yang module dependencies, the default directory is {user.home}/.yang
 2. remote-repository: remote url, it will fetch the yang module dependencies to local repo if yang compiler request, [yangcatalog](https://yangcatalog.org/api/) is default.
 3. proxy: the proxy information, if you are in local network and can't access internet directly, the proxy information must be provided.
@@ -61,7 +64,7 @@ it will generate yang-compiler-1.0-SNAPSHOT.jar and libs directory under the dir
     1. name:  module name,mandatory.
     2. revision: revision date,mandatory.
     3. schema: the url where the yang schema stores.
-###example:
+### &emsp;Example:
 ```json
  {
    
@@ -111,23 +114,23 @@ it will generate yang-compiler-1.0-SNAPSHOT.jar and libs directory under the dir
 
 }
 ```
-## develop plugin
+## Develop plugin
 The plugin system of Yang compiler support built-in plugin and external plugin. Built-in plugin is in yang-compiler project, and external plugin can be in anywhere.
-### specification of plugin information
+### &emsp;Specification of plugin information
 1.  name: the name of plugin, it MUST be unique.
 2.  class-path: the class path of plugin class, it MUST be provided when the plugin is an external plugin. It can be relative path or absolute path,
-if it's a relative path, the base path is plugins directory of application directory.
-    
+    if it's a relative path, the base path is plugins directory of application directory.
+
 3.  class: class name which implements org.yangcentral.yangkit.plugin.YangCompilerPlugin.
 4.  description: some description information about this plugin.
 5.  parameter: parameter information, it's json array. name and description of a parameter MUST be provided.
 
-###how to develop a built-in plugin
+### &emsp;How to develop a built-in plugin
 1. specified a unique plugin name. e.g. yang-tree-generator.
 2. write a java class implements YangCompilerPlugin.
    @see [YangValidator](src/main/java/org/yangcentral/yangkit/plugin/yangtree/YangTreeGenerator.java)
 3. add plugin information in plugins.json(in src/main/resource)
-####example
+#### &emsp;&emsp;Example
  ```json
     {
 
@@ -163,12 +166,12 @@ if it's a relative path, the base path is plugins directory of application direc
    
     }
  ```
-###how to develop a external plugin
+### &emsp;How to develop an external plugin
 1.  specified a unique plugin name. e.g. yang-tree-generator.
 2.  create a java project, and write a java class implements YangCompilerPlugin.
 3.  build the java project, and get the corresponding jar.
 4.  add plugin information to plugins.json ({application directory}/plugins/plugins.json), class-path MUST point to the jar generated at previous step.
-####example
+#### &emsp;&emsp;Example
 ```json
 {
   "plugins": {
@@ -206,17 +209,22 @@ if it's a relative path, the base path is plugins directory of application direc
 }
 ```
 ## Compile YANG modules:
-1.  make a yang-compiler project. You can create a directory in anywhere of your computer.
+1.  make a yang compiler project. You can create a directory in anywhere of your computer.
 2.  make a directory under project directory as target directory where YANG modules what you want to compile store. 'yang' is recommended as the name of the directory.
 3.  place build.json into project directory. The build.json specify the options of this compilation.
 4.  execute the commandline to compile YANG modules.
-
-### specification of compilation options
+### &emsp;Example of yang compiler project
+```
+|--yang-test(project name)
+  |--yang(yang modules to be compiled)
+  |--build.json
+```
+### &emsp;Specification of compilation options
 1.  yang: yang directory to be compiled.
 2.  plugin: a json array,specify the parameters of plugins which will be called.
     1. name: the plugin name.
     2. parameter: the parameters of a plugin. name and value should be specified.
-#### examples:
+#### &emsp;&emsp;Examples:
 ```json
 {
 
@@ -248,11 +256,11 @@ if it's a relative path, the base path is plugins directory of application direc
 
  }
  ```
-### Commandline
+### &emsp;Commandline
 ```
 # java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_settings.json_> ] [install]
 ```
-#### **Parameters**
+#### &emsp;&emsp;Parameters
 1. yang: optional, local directory for yang modules to be compiled, if not present, the 'yang' directory of build.json will be used.
 2. settings: optional, the path of settings.json. {user.home}/.yang/settings.json is default. If no settings.json, the default settings will be used.
 3. install: optional, if it's not present, the yang files to be complied will not be copied into local repo directory, if it's present, all yang files which is successfully compiled will be copied into local repository. 

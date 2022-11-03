@@ -12,6 +12,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,7 +53,7 @@ public class PluginInfo {
         parameters.add(parameter);
     }
 
-    public static PluginInfo parse(JsonElement jsonElement){
+    public static PluginInfo parse(File pluginFile,JsonElement jsonElement){
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         String pluginName = jsonObject.get("name").getAsString();
         String classPath = null;
@@ -63,7 +65,17 @@ public class PluginInfo {
         try {
             Class<? extends YangCompilerPlugin> pluginClass = null;
             if(classPath != null && !classPath.trim().isEmpty()){
-                File f = new File(classPath);
+                Path path = Paths.get(classPath);
+                File f;
+                if(!path.isAbsolute()){
+                   f = new File(pluginFile.getParentFile(),classPath);
+                } else {
+                    f = new File(classPath);
+                }
+                if(!f.exists()){
+                    System.out.println("[ERROR]the class-path:"+ f.getAbsolutePath() + " is not found.");
+                    return null;
+                }
                 URL[] cp = {f.toURI().toURL()};
                 URLClassLoader classLoader = new URLClassLoader(cp);
                 pluginClass = (Class<? extends YangCompilerPlugin>) classLoader.loadClass(className);
