@@ -10,7 +10,9 @@ import org.yangcentral.yangkit.model.api.schema.SchemaTreeType;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
 import org.yangcentral.yangkit.model.api.stmt.*;
 import org.yangcentral.yangkit.model.api.stmt.Module;
+import org.yangcentral.yangkit.model.api.stmt.ext.AugmentStructure;
 import org.yangcentral.yangkit.model.api.stmt.ext.YangData;
+import org.yangcentral.yangkit.model.api.stmt.ext.YangDataStructure;
 import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
 import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
 import org.yangcentral.yangkit.utils.file.FileUtil;
@@ -136,6 +138,11 @@ public class YangTreeGenerator implements YangCompilerPlugin {
                     }
 
                     @Override
+                    public List<SchemaNode> getEffectiveSchemaNodeChildren(boolean ignoreNamespace) {
+                        return null;
+                    }
+
+                    @Override
                     public void removeSchemaNodeChild(QName identifier) {
 
                     }
@@ -164,6 +171,32 @@ public class YangTreeGenerator implements YangCompilerPlugin {
                 sb.append(yangData.getArgStr());
                 sb.append(":\n");
                 sb.append(buildChildren(yangData,"    "));
+            }
+        }
+        // yang structure extension
+        List<YangUnknown> yangStructureList = module.getUnknowns(YangDataStructure.YANG_KEYWORD);
+        if(!yangStructureList.isEmpty()){
+            for(YangUnknown unknown :yangStructureList){
+                YangDataStructure structure = (YangDataStructure) unknown;
+                sb.append("  ");
+                sb.append("structure");
+                sb.append(" ");
+                sb.append(structure.getArgStr());
+                sb.append(":\n");
+                sb.append(buildChildren(structure,"    "));
+            }
+        }
+        // augment structure extension
+        List<YangUnknown> augmentStructureList = module.getUnknowns(AugmentStructure.YANG_KEYWORD);
+        if(!augmentStructureList.isEmpty()){
+            for(YangUnknown unknown :augmentStructureList){
+                AugmentStructure augmentStructure = (AugmentStructure) unknown;
+                sb.append("  ");
+                sb.append("augment-structure");
+                sb.append(" ");
+                sb.append(augmentStructure.getArgStr());
+                sb.append(":\n");
+                sb.append(buildChildren(augmentStructure,"    "));
             }
         }
         return sb.toString();
