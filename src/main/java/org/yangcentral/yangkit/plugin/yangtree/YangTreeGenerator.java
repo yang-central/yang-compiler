@@ -479,6 +479,9 @@ public class YangTreeGenerator implements YangCompilerPlugin {
         &&!name.equals("expand-grouping")){
             throw new YangCompilerException("unrecognized parameter:"+ name);
         }
+        if(name.equals("output")){
+            return YangCompilerPlugin.super.getParameter(compilerProps,name,value);
+        }
         YangCompilerPluginParameter yangCompilerPluginParameter = new YangCompilerPluginParameter() {
             @Override
             public String getName() {
@@ -487,15 +490,7 @@ public class YangTreeGenerator implements YangCompilerPlugin {
 
             @Override
             public Object getValue()  {
-                if(name.equals("output")){
-                    Iterator<Map.Entry<Object,Object>> it = compilerProps.entrySet().iterator();
-                    String formatStr = value;
-                    while (it.hasNext()){
-                        Map.Entry<Object,Object> entry = it.next();
-                        formatStr = formatStr.replaceAll("\\{"+entry.getKey()+"\\}", (String) entry.getValue());
-                    }
-                    return formatStr;
-                }
+
                 if(name.equals("line-length")){
                     return new Integer(value);
                 }

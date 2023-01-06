@@ -15,33 +15,6 @@ import java.util.Properties;
 public class YangValidator implements YangCompilerPlugin {
 
     @Override
-    public YangCompilerPluginParameter getParameter(Properties compilerProps,String name, String value) {
-        if(!name.equalsIgnoreCase("output")){
-            return null;
-        }
-
-        YangCompilerPluginParameter yangCompilerPluginParameter = new YangCompilerPluginParameter() {
-            @Override
-            public String getName() {
-                return name;
-            }
-
-            @Override
-            public Object getValue() {
-                Iterator<Map.Entry<Object,Object>> it = compilerProps.entrySet().iterator();
-                String formatStr = value;
-                while (it.hasNext()){
-                    Map.Entry<Object,Object> entry = it.next();
-                    formatStr = formatStr.replaceAll("\\{"+entry.getKey()+"\\}", (String) entry.getValue());
-                }
-                return formatStr;
-            }
-
-        };
-        return yangCompilerPluginParameter;
-    }
-
-    @Override
     public void run(YangSchemaContext schemaContext, Settings settings,List<YangCompilerPluginParameter> parameters) throws YangCompilerException {
         YangCompilerPluginParameter parameter = parameters.get(0);
         if(!parameter.getName().equals("output")){

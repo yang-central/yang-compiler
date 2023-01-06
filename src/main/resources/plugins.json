@@ -14,6 +14,18 @@
         ]
       },
       {
+        "name": "yang_statistics",
+        "class-path": "",
+        "class": "org.yangcentral.yangkit.plugin.stat.YangStatistics",
+        "description": "a plugin for retrieving yang statistics",
+        "parameter": [
+          {
+            "name": "output",
+            "description": "the output file."
+          }
+        ]
+      },
+      {
         "name": "yangtree_generator",
         "class": "org.yangcentral.yangkit.plugin.yangtree.YangTreeGenerator",
         "description": "a plugin for generating yang tree",
