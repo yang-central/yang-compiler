@@ -12,6 +12,7 @@ import org.yangcentral.yangkit.compiler.Settings;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
 import org.yangcentral.yangkit.model.api.stmt.*;
+import org.yangcentral.yangkit.model.api.stmt.Module;
 import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
 import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
 
