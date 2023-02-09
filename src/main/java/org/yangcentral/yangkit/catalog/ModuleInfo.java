@@ -49,7 +49,11 @@ public class ModuleInfo {
         if(organizationElement != null){
             organization = organizationElement.getAsString();
         }
-        URI schema = URI.create(jsonObject.get("schema").getAsString());
+        JsonElement schemaElement = jsonObject.get("schema");
+        if(schemaElement == null){
+            return null;
+        }
+        URI schema = URI.create(schemaElement.getAsString());
         if(name == null || revision == null || schema == null){
             return null;
         }

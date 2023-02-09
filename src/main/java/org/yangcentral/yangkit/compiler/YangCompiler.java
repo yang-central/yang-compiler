@@ -30,14 +30,9 @@ import org.yangcentral.yangkit.writter.YangWriter;
 
 
 import javax.annotation.Nullable;
-import javax.net.ssl.*;
 import java.io.*;
 import java.net.*;
 import java.net.Proxy;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -436,7 +431,7 @@ public class YangCompiler {
                         }
                     }
                     System.out.println("[INFO]call plugin:" + pluginInfo.getPluginName() + " ...");
-                    plugin.run(schemaContext,this.settings,parameters);
+                    plugin.run(schemaContext,this,parameters);
                     System.out.println("ok.");
                 } catch (YangCompilerException e) {
                     System.out.println("[ERROR]"+e.getMessage());

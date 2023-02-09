@@ -43,6 +43,17 @@
             "description": "boolean,default is true,indicate whether expand grouping"
           }
         ]
+      },
+      {
+        "name": "yangpackage_generator",
+        "class": "org.yangcentral.yangkit.plugin.yangpackage.YangPackageGenerator",
+        "description": "a plugin for generating yang package",
+        "parameter": [
+          {
+            "name": "output",
+            "description": "string, the file name(include parent path) of yang package instance."
+          }
+        ]
       }
     ]
   }

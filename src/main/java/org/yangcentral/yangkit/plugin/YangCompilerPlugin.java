@@ -1,6 +1,7 @@
 package org.yangcentral.yangkit.plugin;
 
 import org.yangcentral.yangkit.compiler.Settings;
+import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
 
@@ -36,6 +37,6 @@ public interface YangCompilerPlugin {
         return yangCompilerPluginParameter;
     }
 
-    void run(YangSchemaContext schemaContext, Settings settings, List<YangCompilerPluginParameter> parameters) throws YangCompilerException;
+    void run(YangSchemaContext schemaContext, YangCompiler yangCompiler, List<YangCompilerPluginParameter> parameters) throws YangCompilerException;
 
 }

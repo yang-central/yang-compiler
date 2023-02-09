@@ -2,8 +2,8 @@ package org.yangcentral.yangkit.plugin.yangtree;
 
 
 import org.yangcentral.yangkit.common.api.QName;
-import org.yangcentral.yangkit.common.api.validate.ValidatorResult;
 import org.yangcentral.yangkit.compiler.Settings;
+import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.restriction.LeafRef;
 import org.yangcentral.yangkit.model.api.schema.SchemaTreeType;
@@ -24,6 +24,8 @@ public class YangTreeGenerator implements YangCompilerPlugin {
     private int lineLength = 72;
     private boolean expandGrouping = true;
     private String output;
+    private static final String SPACE = " ";
+    private static final String TWO_SPACES = "  ";
     private static final String OFFSET = "   ";
     private static final String VERTICAL_OFFSET = "|  ";
 
@@ -34,11 +36,38 @@ public class YangTreeGenerator implements YangCompilerPlugin {
         } else {
             sb.append("submodule:");
         }
-        sb.append(" ");
+        sb.append(SPACE);
         sb.append(module.getArgStr());
         sb.append("\n");
         //data nodes
         List<DataDefinition> dataDefs = module.getDataDefChildren();
+
+        //augments
+        List<Augment> augments = module.getAugments();
+
+        //rpcs
+        List<Rpc> rpcs = module.getRpcs();
+
+        //notifications
+        List<Notification> notifications = module.getNotifications();
+
+
+        List<YangUnknown> yangDataList = module.getUnknowns(
+                new QName("urn:ietf:params:xml:ns:yang:ietf-restconf","yang-data"));
+
+        // yang structure extension
+        List<YangUnknown> yangStructureList = module.getUnknowns(YangDataStructure.YANG_KEYWORD);
+
+        // augment structure extension
+        List<YangUnknown> augmentStructureList = module.getUnknowns(AugmentStructure.YANG_KEYWORD);
+
+        if(!module.getGroupings().isEmpty() && (!expandGrouping || (module.getDataDefChildren().isEmpty() &&
+                module.getRpcs().isEmpty() && module.getNotifications().isEmpty()
+                && module.getAugments().isEmpty() && yangDataList.isEmpty() && yangStructureList.isEmpty()
+                && augmentStructureList.isEmpty()))){
+            sb.append(buildGroupingContainer(module,TWO_SPACES));
+        }
+        //data nodes
         if(!dataDefs.isEmpty()){
             int size = dataDefs.size();
             boolean last = false;
@@ -47,21 +76,19 @@ public class YangTreeGenerator implements YangCompilerPlugin {
                     last = true;
                 }
                 DataDefinition dataDefinition = dataDefs.get(i);
-                sb.append(buildYangTree(dataDefinition,last,"  "));
+                sb.append(buildYangTree(dataDefinition,last,TWO_SPACES,!expandGrouping));
             }
         }
         //augments
-        List<Augment> augments = module.getAugments();
         if(!augments.isEmpty()){
             for(Augment augment:augments){
-                sb.append(buildAugmentRepresentation(augment,"  "));
-                sb.append(buildChildren(augment,"    "));
+                sb.append(buildAugmentRepresentation(augment,TWO_SPACES));
+                sb.append(buildChildren(augment,TWO_SPACES+TWO_SPACES,!expandGrouping));
             }
         }
         //rpcs
-        List<Rpc> rpcs = module.getRpcs();
         if(!rpcs.isEmpty()){
-            sb.append("  ");
+            sb.append(TWO_SPACES);
             sb.append("rpcs:\n");
             int size = rpcs.size();
             boolean last = false;
@@ -70,13 +97,12 @@ public class YangTreeGenerator implements YangCompilerPlugin {
                     last = true;
                 }
                 Rpc rpc = rpcs.get(i);
-                sb.append(buildYangTree(rpc,last,"    "));
+                sb.append(buildYangTree(rpc,last,TWO_SPACES+TWO_SPACES,!expandGrouping));
             }
         }
         //notifications
-        List<Notification> notifications = module.getNotifications();
         if(!notifications.isEmpty()){
-            sb.append("  ");
+            sb.append(TWO_SPACES);
             sb.append("notifications:\n");
             int size = notifications.size();
             boolean last = false;
@@ -85,133 +111,94 @@ public class YangTreeGenerator implements YangCompilerPlugin {
                     last = true;
                 }
                 Notification notification = notifications.get(i);
-                sb.append(buildYangTree(notification,last,"    "));
+                sb.append(buildYangTree(notification,last,TWO_SPACES+TWO_SPACES,!expandGrouping));
             }
         }
-        if(!module.getGroupings().isEmpty() && (!expandGrouping || (module.getDataDefChildren().isEmpty() &&
-                module.getRpcs().isEmpty() && module.getNotifications().isEmpty()
-        && module.getAugments().isEmpty()))){
-            for(Grouping grouping:module.getGroupings()){
-                sb.append("  ");
-                sb.append("grouping ");
-                sb.append(grouping.getArgStr());
-                sb.append(":\n");
-                SchemaNodeContainer schemaNodeContainer = new SchemaNodeContainer() {
-                    @Override
-                    public List<SchemaNode> getSchemaNodeChildren() {
-                        List<SchemaNode> schemaNodes = new ArrayList<>();
-                        for(DataDefinition dataDefinition: grouping.getDataDefChildren()){
-                            schemaNodes.add(dataDefinition);
-                        }
-                        for(Action action:grouping.getActions()){
-                            schemaNodes.add(action);
-                        }
-                        for(Notification notification: grouping.getNotifications()){
-                            schemaNodes.add(notification);
-                        }
-                        return schemaNodes;
-                    }
-
-                    @Override
-                    public ValidatorResult addSchemaNodeChild(SchemaNode schemaNode) {
-                        return null;
-                    }
-
-                    @Override
-                    public ValidatorResult addSchemaNodeChildren(List<SchemaNode> schemaNodes) {
-                        return null;
-                    }
-
-                    @Override
-                    public SchemaNode getSchemaNodeChild(QName identifier) {
-                        return null;
-                    }
-
-                    @Override
-                    public DataNode getDataNodeChild(QName identifier) {
-                        return null;
-                    }
-
-                    @Override
-                    public List<DataNode> getDataNodeChildren() {
-                        return null;
-                    }
-
-                    @Override
-                    public List<SchemaNode> getEffectiveSchemaNodeChildren(boolean ignoreNamespace) {
-                        return null;
-                    }
-
-                    @Override
-                    public void removeSchemaNodeChild(QName identifier) {
-
-                    }
-
-                    @Override
-                    public void removeSchemaNodeChild(SchemaNode schemaNode) {
-
-                    }
-
-                    @Override
-                    public SchemaNode getMandatoryDescendant() {
-                        return null;
-                    }
-                };
-                sb.append(buildChildren(schemaNodeContainer,"    "));
-            }
-        }
-        List<YangUnknown> yangDataList = module.getUnknowns(
-                new QName("urn:ietf:params:xml:ns:yang:ietf-restconf","yang-data"));
+        //yang data
         if(!yangDataList.isEmpty()){
             for(YangUnknown unknown :yangDataList){
                 YangData yangData = (YangData) unknown;
-                sb.append("  ");
+                sb.append(TWO_SPACES);
                 sb.append("yang-data");
                 sb.append(" ");
                 sb.append(yangData.getArgStr());
                 sb.append(":\n");
-                sb.append(buildChildren(yangData,"    "));
+                sb.append(buildChildren(yangData,TWO_SPACES+TWO_SPACES,!expandGrouping));
             }
         }
-        // yang structure extension
-        List<YangUnknown> yangStructureList = module.getUnknowns(YangDataStructure.YANG_KEYWORD);
+        //structures
         if(!yangStructureList.isEmpty()){
             for(YangUnknown unknown :yangStructureList){
                 YangDataStructure structure = (YangDataStructure) unknown;
-                sb.append("  ");
+                sb.append(TWO_SPACES);
                 sb.append("structure");
                 sb.append(" ");
                 sb.append(structure.getArgStr());
                 sb.append(":\n");
-                sb.append(buildChildren(structure,"    "));
+                if(!expandGrouping){
+                    sb.append(buildGroupingContainer(structure,TWO_SPACES+TWO_SPACES));
+                }
+                sb.append(buildChildren(structure,TWO_SPACES+TWO_SPACES,!expandGrouping));
+
             }
         }
-        // augment structure extension
-        List<YangUnknown> augmentStructureList = module.getUnknowns(AugmentStructure.YANG_KEYWORD);
+        //augment-structures
         if(!augmentStructureList.isEmpty()){
             for(YangUnknown unknown :augmentStructureList){
                 AugmentStructure augmentStructure = (AugmentStructure) unknown;
-                sb.append("  ");
+                sb.append(TWO_SPACES);
                 sb.append("augment-structure");
                 sb.append(" ");
                 sb.append(augmentStructure.getArgStr());
                 sb.append(":\n");
-                sb.append(buildChildren(augmentStructure,"    "));
+                sb.append(buildChildren(augmentStructure,TWO_SPACES+TWO_SPACES,!expandGrouping));
             }
+        }
+
+        return sb.toString();
+    }
+    private String buildGroupingContainer(GroupingDefContainer groupingDefContainer,String offSet){
+        StringBuilder sb = new StringBuilder();
+        //sb.append(offSet);
+        List<Grouping> groupings = groupingDefContainer.getGroupings();
+        int size = groupings.size();
+        for(int i =0; i< size;i++){
+            boolean last = false;
+            if(i == (size -1)){
+                last = true;
+            }
+            Grouping g = groupings.get(i);
+            sb.append(buildGrouping(g,last,offSet));
         }
         return sb.toString();
     }
-
-    private String buildChildren(SchemaNodeContainer schemaNodeContainer,String offSet){
-        StringBuilder sb = new StringBuilder();
-        List<SchemaNode> schemaNodeChildren = schemaNodeContainer.getSchemaNodeChildren();
+    private List<SchemaNode> getRealSchemaChildren(SchemaNodeContainer schemaNodeContainer,boolean grouping){
         List<SchemaNode> realSchemaNodeChildren = new ArrayList<>();
-        for(SchemaNode schemaChild:schemaNodeChildren){
+
+        for(SchemaNode schemaChild:schemaNodeContainer.getSchemaNodeChildren()){
             if(schemaChild instanceof Augment){
-                continue;
+                Augment augment = (Augment) schemaChild;
+                if(schemaNodeContainer instanceof SchemaNode){
+                    SchemaNode schemaNodeParent = (SchemaNode) schemaNodeContainer;
+                    if(augment.getContext().getNamespace() != null && !augment.getContext().getNamespace()
+                            .equals(schemaNodeParent.getContext().getNamespace())){
+                        continue;
+                    }
+                }
+                if(!grouping){
+                    realSchemaNodeChildren.addAll(getRealSchemaChildren(augment,grouping));
+                    continue;
+                }
             }
             realSchemaNodeChildren.add(schemaChild);
         }
+        return realSchemaNodeChildren;
+    }
+    private String buildChildren(SchemaNodeContainer schemaNodeContainer,String offSet,boolean grouping){
+        StringBuilder sb = new StringBuilder();
+        List<SchemaNode> schemaNodeChildren = schemaNodeContainer.getSchemaNodeChildren();
+        List<SchemaNode> realSchemaNodeChildren = getRealSchemaChildren(schemaNodeContainer,grouping);
+
         int size = realSchemaNodeChildren.size();
         for(int i = 0;i < size;i++){
             SchemaNode realSchemaNode = realSchemaNodeChildren.get(i);
@@ -219,56 +206,67 @@ public class YangTreeGenerator implements YangCompilerPlugin {
             if(i == (size -1)){
                 subLast = true;
             }
-            sb.append(buildYangTree(realSchemaNode,subLast,offSet));
+            sb.append(buildYangTree(realSchemaNode,subLast,offSet,grouping));
 
         }
         return sb.toString();
     }
-    private String buildYangTree(SchemaNode schemaNode,boolean last,String offSet){
+    private String buildGrouping(Grouping grouping,boolean last,String offset){
         StringBuilder sb = new StringBuilder();
-        if((schemaNode instanceof Uses) && expandGrouping){
+        sb.append(offset);
+        sb.append("grouping ");
+        sb.append(grouping.getArgStr());
+        sb.append(":\n");
+        GroupingSchemaNodeContainer groupingSchemaNodeContainer = new GroupingSchemaNodeContainer(grouping);
+        sb.append(buildGroupingContainer(grouping,offset+TWO_SPACES));
+        sb.append(buildChildren(groupingSchemaNodeContainer,offset+TWO_SPACES,true));
+        return sb.toString();
+    }
+    private String buildYangTree(SchemaNode schemaNode,boolean last,String offSet,boolean grouping){
+        StringBuilder sb = new StringBuilder();
+        if(!grouping && (schemaNode instanceof Uses)){
             Uses uses = (Uses) schemaNode;
-            List<SchemaNode> schemaNodes = uses.getSchemaNodeChildren();
-            if(schemaNodes.isEmpty()){
-                schemaNodes = new ArrayList<>();
-                if(uses.getRefGrouping() != null){
-
-                    for(DataDefinition dataDefinition:uses.getRefGrouping().getDataDefChildren()){
-                        schemaNodes.add(dataDefinition);
-                    }
-                    for(Action action:uses.getRefGrouping().getActions()){
-                        schemaNodes.add(action);
-                    }
-                    for(Notification notification:uses.getRefGrouping().getNotifications()){
-                        schemaNodes.add(notification);
-                    }
-                }
-            }
+            List<SchemaNode> schemaNodes= uses.getSchemaNodeChildren();
             for(int i =0;i < schemaNodes.size();i++){
                 SchemaNode exSchemaNode = schemaNodes.get(i);
                 boolean subLast = last;
                 if(i != (schemaNodes.size() -1)){
                     subLast = false;
                 }
-                sb.append(buildYangTree(exSchemaNode,subLast,offSet));
+                sb.append(buildYangTree(exSchemaNode,subLast,offSet,grouping));
             }
             return sb.toString();
+        }
+        if(schemaNode instanceof Augment){
+            sb.append(buildAugmentRepresentation((Augment) schemaNode,offSet));
         } else {
             sb.append(buildNodeRepresentation(schemaNode,offSet));
-            if(schemaNode instanceof Uses){
-                return sb.toString();
-            }
         }
-
+        if((schemaNode instanceof GroupingDefContainer) && grouping){
+            sb.append(buildGroupingContainer((GroupingDefContainer) schemaNode,offSet+TWO_SPACES));
+        }
         if(schemaNode instanceof SchemaNodeContainer){
             String childOffSet = offSet;
-            if(last){
-                childOffSet = childOffSet.concat(OFFSET);
+            if(schemaNode instanceof Augment){
+                childOffSet = childOffSet.concat(TWO_SPACES);
             } else {
-                childOffSet = childOffSet.concat(VERTICAL_OFFSET);
+                if(last){
+                    childOffSet = childOffSet.concat(OFFSET);
+                } else {
+                    childOffSet = childOffSet.concat(VERTICAL_OFFSET);
+                }
             }
-            sb.append(buildChildren((SchemaNodeContainer) schemaNode,childOffSet));
+
+            SchemaNodeContainer schemaNodeContainer;
+            if(!grouping){
+                schemaNodeContainer = (SchemaNodeContainer) schemaNode;
+            } else {
+                schemaNodeContainer = new GroupingSchemaNodeContainer(schemaNode);
+            }
+
+            sb.append(buildChildren(schemaNodeContainer,childOffSet,grouping));
         }
+
         return sb.toString();
     }
 
@@ -508,7 +506,7 @@ public class YangTreeGenerator implements YangCompilerPlugin {
     }
 
     @Override
-    public void run(YangSchemaContext schemaContext, Settings settings, List<YangCompilerPluginParameter> parameters) throws YangCompilerException {
+    public void run(YangSchemaContext schemaContext, YangCompiler yangCompiler, List<YangCompilerPluginParameter> parameters) throws YangCompilerException {
         for(YangCompilerPluginParameter parameter:parameters){
             if(parameter.getName().equals("output")){
                 output = (String) parameter.getValue();
@@ -517,9 +515,9 @@ public class YangTreeGenerator implements YangCompilerPlugin {
             } else if(parameter.getName().equals("expand-grouping")){
                 expandGrouping = (boolean) parameter.getValue();
             }
-            if(output == null){
-                throw new YangCompilerException("missing mandatory parameter:output");
-            }
+        }
+        if(output == null){
+            throw new YangCompilerException("missing mandatory parameter:output");
         }
         File outputDir = new File(output);
         if(!outputDir.exists()){

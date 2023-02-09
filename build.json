@@ -1,6 +1,6 @@
 {
   "build": {
-    "yang": "yang/new",
+    "yang": "C:\\Users\\f00360218\\Downloads\\NetEngine8000-X V800R022C00SPC600 yang",
     "plugin": [
       {
         "name": "yangtree_generator",
@@ -12,23 +12,6 @@
           {
             "name": "expand-grouping",
             "value": "true"
-          }
-        ]
-      },
-      {
-        "name": "yang_comparator",
-        "parameter": [
-          {
-            "name": "old-yang",
-            "value": "yang/old"
-          },
-          {
-            "name": "compare-type",
-            "value": "tree"
-          },
-          {
-            "name": "result",
-            "value": "yang/result.xml"
           }
         ]
       }

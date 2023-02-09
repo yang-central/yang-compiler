@@ -80,6 +80,9 @@ public class YangCatalog {
         for(int i = 0; i < size;i++){
             JsonElement subElement = moduleArray.get(i);
             ModuleInfo moduleInfo = ModuleInfo.parse(subElement);
+            if(moduleInfo == null){
+                continue;
+            }
             yangCatalog.addModule(moduleInfo);
         }
         return yangCatalog;
