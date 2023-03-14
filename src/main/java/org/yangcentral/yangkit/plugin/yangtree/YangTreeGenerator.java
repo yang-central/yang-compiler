@@ -330,13 +330,26 @@ public class YangTreeGenerator implements YangCompilerPlugin {
             return " " + yangStatement.getArgStr();
         }
     }
+    private boolean isMandatory(SchemaDataNode dataNode){
+        //key nodes
+        if(dataNode instanceof Leaf){
+            SchemaNodeContainer parent = dataNode.getClosestAncestorNode();
+            if(parent instanceof YangList){
+                YangList list = (YangList) parent;
+                if(list.getKey().getKeyNode(dataNode.getIdentifier())!= null){
+                    return true;
+                }
+            }
+        }
+        return dataNode.isMandatory();
+    }
 
     private String getOpts(YangStatement yangStatement){
         if((yangStatement instanceof Leaf)
         ||(yangStatement instanceof Choice)
         ||(yangStatement instanceof Anydata)
         ||(yangStatement instanceof Anyxml)){
-            if(!((SchemaDataNode) yangStatement).isMandatory()){
+            if(!isMandatory((SchemaDataNode) yangStatement)){
                 return "?";
             }
         }else if(yangStatement instanceof Container){
@@ -384,6 +397,22 @@ public class YangTreeGenerator implements YangCompilerPlugin {
         }
         return sb.toString();
     }
+
+    private String wrapLongPath(String offSet,String longPath){
+        if((offSet.length() + longPath.length()) <= lineLength){
+            return offSet+longPath;
+        }
+        StringBuilder wrappedLine = new StringBuilder(offSet);
+        String firstCandidatePath = longPath.substring(0,lineLength-offSet.length());
+        int index = firstCandidatePath.lastIndexOf("/");
+        firstCandidatePath = firstCandidatePath.substring(0,index);
+        wrappedLine.append(firstCandidatePath);
+        wrappedLine.append("\n");
+        String nextOffSet = offSet+"  ";
+        String nextLongPath = longPath.substring(index);
+        wrappedLine.append(wrapLongPath(nextOffSet,nextLongPath));
+        return wrappedLine.toString();
+    }
     public String buildAugmentRepresentation(Augment augment,String offSet){
         StringBuilder sb = new StringBuilder(offSet);
         int beginIndex = sb.length();
@@ -425,24 +454,37 @@ public class YangTreeGenerator implements YangCompilerPlugin {
         sb.append(getOpts(yangStatement));
 
 
-        if(yangStatement instanceof TypedDataNode){
+        if(yangStatement instanceof TypedDataNode) {
             int typeIndex = sb.length();
-            String type = getType((TypedDataNode) yangStatement);
-            if(type.length() + typeIndex+1 > lineLength){
+            TypedDataNode typedDataNode = (TypedDataNode) yangStatement;
+            String type = getType(typedDataNode);
+            if (type.length() + typeIndex + 1 > lineLength) {
                 //change line
-                sb.append("\n");
-                sb.append(offSet);
-                for(int i=beginIndex;i<nameIndex+2;i++){
-                    sb.append(" ");
+                StringBuilder newLine = new StringBuilder();
+
+                StringBuilder newOffSet = new StringBuilder(offSet);
+
+                for (int i = beginIndex; i < nameIndex + 2; i++) {
+                    newOffSet.append(" ");
                 }
-                sb.append(type);
+                newLine.append(newOffSet);
+                newLine.append(type);
+
+                if ((typedDataNode.getType().getRestriction() instanceof LeafRef)
+                        && (newLine.length() > lineLength)) {
+                    sb.append(" ");
+                    sb.append("leafref");
+                } else {
+                    sb.append("\n");
+                    sb.append(newLine);
+                }
+
+
             } else {
                 sb.append(" ");
                 sb.append(type);
             }
-
         }
-
 
         if(yangStatement instanceof IfFeatureSupport){
             IfFeatureSupport ifFeatureSupport = (IfFeatureSupport) yangStatement;

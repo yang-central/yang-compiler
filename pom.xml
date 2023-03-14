@@ -22,7 +22,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>org.yangcentral.yangkit.compiler.YangCompiler</mainClass>
+                            <mainClass>org.yangcentral.yangkit.compiler.app.YangCompilerRunner</mainClass>
                             <classpathPrefix>libs/</classpathPrefix>
                         </manifest>
                         <!--

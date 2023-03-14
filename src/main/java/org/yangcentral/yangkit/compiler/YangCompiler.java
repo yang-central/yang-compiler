@@ -411,6 +411,10 @@ public class YangCompiler {
 
         YangSchemaContext schemaContext = buildSchemaContext();
         ValidatorResult validatorResult = schemaContext.validate();
+        if(!validatorResult.isOk()){
+            System.out.println(validatorResult);
+            return;
+        }
         if(getBuilder() != null){
             for(PluginBuilder pluginBuilder:getBuilder().getPlugins()){
                 PluginInfo pluginInfo = getPluginInfo(pluginBuilder.getName());
@@ -515,28 +519,6 @@ public class YangCompiler {
         JsonElement jsonElement = JsonParser.parseString(str);
         return Builder.parse(jsonElement);
     }
-    public static void main(String args[]) throws IOException, URISyntaxException {
-        String yangdir = null;
-        String settingsfile = null;
-        boolean install = false;
-        for(String arg:args){
-            String[] paras = arg.split("=");
-            if(paras.length ==2){
-                String para = paras[0];
-                String value = paras[1];
-                if(para.equals("yang")){
-                    yangdir = value;
-                }else if(para.equals("settings")){
-                    settingsfile = value;
-                }
-            } else {
-                if(arg.equals("install")){
-                    install = true;
-                }
-            }
-        }
-        YangCompiler compiler = new YangCompiler();
-        compiler.compile(yangdir,settingsfile,install);
-    }
+
 
 }
