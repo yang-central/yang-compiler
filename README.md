@@ -5,7 +5,7 @@ For example, after a YANG module is written, if you want to validate it, you nee
 where these dependented YANG files are archived and how to obtain these YANG files are also difficult problems. This brings great inconvenience to users and
 affects their enthusiasm for using YANG.
 
-Yang compiler provide a mechanism to get the dependencies automatically when compiling YANG modules. Firstly, it will search the dependencies from the target directory to be complied, if not found, it will search these YANG files from local repository(it's defined in settings.json or default directory), and if it's not found also, it will search the dependencies from module information defined in settings.json(if available), and according to the information to download the YANG files. if it's still not found, it will search the dependencies for remote repository(defined in settings.json or
+Yang compiler provide a mechanism to get the dependencies automatically when compiling YANG modules. Firstly, it will search the dependencies from yang sources to be complied, if not found, it will search these YANG files from local repository(it's defined in settings.json or default directory), and if it's not found also, it will search the dependencies from module information defined in settings.json(if available), and according to the information to download the YANG files. if it's still not found, it will search the dependencies for remote repository(defined in settings.json or
 [yangcatalog](https://yangcatalog.org/api/) by default). If the dependencies are fetched, it will be saved into local repository.
 
 Using Yang compiler, you can compile any YANG file regardless where it's dependencies are. Yang compiler allow developer to develop
@@ -221,7 +221,8 @@ The plugin system of Yang compiler support built-in plugin and external plugin. 
 ```
 ### &emsp;Specification of compilation options
 1.  yang: source yang information, support directory, file list, module information, or hybrid.
-2.  plugin: a json array,specify the parameters of plugins which will be called.
+2.  settings: specify the path of settings.json, optional, if it's not present, the {user.home}/.yang/settings.json will be used.
+3.  plugin: a json array,specify the parameters of plugins which will be called.
     1. name: the plugin name.
     2. parameter: the parameters of a plugin. name and value should be specified.
 #### &emsp;&emsp;Examples:
@@ -256,7 +257,7 @@ The plugin system of Yang compiler support built-in plugin and external plugin. 
           "yang/huawei/huawei-bgp.yang"
         ]
       },
- 
+      "settings" : "settings.json",
       "plugin": [
         {
           "name": "validator_plugin",
@@ -306,9 +307,8 @@ The plugin system of Yang compiler support built-in plugin and external plugin. 
  ```
 ### &emsp;Commandline
 ```
-# java -jar yang-compiler-1.0-SNAPSHOT.jar [yang=<_yang directory_>] [ settings=<_settings.json_> ] [install]
+# java -jar yang-compiler-1.0-SNAPSHOT.jar [option=<_build.json_>]  [install]
 ```
 #### &emsp;&emsp;Parameters
-1. yang: optional, local directory for yang modules to be compiled, if not present, the 'yang' directory of build.json will be used.
-2. settings: optional, the path of settings.json. {user.home}/.yang/settings.json is default. If no settings.json, the default settings will be used.
-3. install: optional, if it's not present, the yang files to be complied will not be copied into local repo directory, if it's present, all yang files which is successfully compiled will be copied into local repository. 
+1. option: optional, specify the build option. It's the path of build.json, if not present, the build.json in current directory will be used.
+2. install: optional, if it's not present, the yang files to be complied will not be copied into local repo directory, if it's present, all yang files which is successfully compiled will be copied into local repository. 
