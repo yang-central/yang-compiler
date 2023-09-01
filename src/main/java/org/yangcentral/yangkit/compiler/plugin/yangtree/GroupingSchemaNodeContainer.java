@@ -1,4 +1,4 @@
-package org.yangcentral.yangkit.plugin.yangtree;
+package org.yangcentral.yangkit.compiler.plugin.yangtree;
 
 import org.yangcentral.yangkit.common.api.QName;
 import org.yangcentral.yangkit.common.api.validate.ValidatorResult;
@@ -82,6 +82,16 @@ public class GroupingSchemaNodeContainer implements SchemaNodeContainer, Groupin
 
     @Override
     public List<DataNode> getDataNodeChildren() {
+        return null;
+    }
+
+    @Override
+    public List<SchemaNode> getTreeNodeChildren() {
+        return null;
+    }
+
+    @Override
+    public SchemaNode getTreeNodeChild(QName identifier) {
         return null;
     }
 

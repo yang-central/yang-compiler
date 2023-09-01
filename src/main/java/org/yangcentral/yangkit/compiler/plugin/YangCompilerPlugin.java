@@ -1,6 +1,7 @@
-package org.yangcentral.yangkit.plugin;
+package org.yangcentral.yangkit.compiler.plugin;
 
-import org.yangcentral.yangkit.compiler.Settings;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
@@ -13,7 +14,7 @@ import java.util.regex.Matcher;
 
 public interface YangCompilerPlugin {
 
-    default YangCompilerPluginParameter getParameter(Properties compilerProps,String name, String value)
+    default YangCompilerPluginParameter getParameter(String name, JsonElement value)
             throws YangCompilerException {
         YangCompilerPluginParameter yangCompilerPluginParameter = new YangCompilerPluginParameter() {
             @Override
@@ -23,12 +24,7 @@ public interface YangCompilerPlugin {
 
             @Override
             public Object getValue()  {
-                Iterator<Map.Entry<Object,Object>> it = compilerProps.entrySet().iterator();
-                String formatStr = value;
-                while (it.hasNext()){
-                    Map.Entry<Object,Object> entry = it.next();
-                    formatStr = formatStr.replaceAll("\\{"+entry.getKey()+"\\}", Matcher.quoteReplacement((String) entry.getValue()));
-                }
+                String formatStr = value.getAsString();
                 return formatStr;
 
             }

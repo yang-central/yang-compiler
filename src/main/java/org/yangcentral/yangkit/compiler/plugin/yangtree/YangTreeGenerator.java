@@ -1,8 +1,9 @@
-package org.yangcentral.yangkit.plugin.yangtree;
+package org.yangcentral.yangkit.compiler.plugin.yangtree;
 
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.yangcentral.yangkit.common.api.QName;
-import org.yangcentral.yangkit.compiler.Settings;
 import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.restriction.LeafRef;
@@ -13,8 +14,8 @@ import org.yangcentral.yangkit.model.api.stmt.Module;
 import org.yangcentral.yangkit.model.api.stmt.ext.AugmentStructure;
 import org.yangcentral.yangkit.model.api.stmt.ext.YangData;
 import org.yangcentral.yangkit.model.api.stmt.ext.YangDataStructure;
-import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
-import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPluginParameter;
 import org.yangcentral.yangkit.utils.file.FileUtil;
 
 import java.io.File;
@@ -514,13 +515,13 @@ public class YangTreeGenerator implements YangCompilerPlugin {
         return sb.toString();
     }
     @Override
-    public YangCompilerPluginParameter getParameter(Properties compilerProps, String name, String value) throws YangCompilerException {
+    public YangCompilerPluginParameter getParameter(String name, JsonElement value) throws YangCompilerException {
         if(!name.equals("output")&&!name.equals("line-length")
         &&!name.equals("expand-grouping")){
             throw new YangCompilerException("unrecognized parameter:"+ name);
         }
         if(name.equals("output")){
-            return YangCompilerPlugin.super.getParameter(compilerProps,name,value);
+            return YangCompilerPlugin.super.getParameter(name,value);
         }
         YangCompilerPluginParameter yangCompilerPluginParameter = new YangCompilerPluginParameter() {
             @Override
@@ -532,11 +533,11 @@ public class YangTreeGenerator implements YangCompilerPlugin {
             public Object getValue()  {
 
                 if(name.equals("line-length")){
-                    return new Integer(value);
+                    return value.getAsInt();
                 }
 
                 if(name.equals("expand-grouping")){
-                    return Boolean.valueOf(value);
+                    return value.getAsBoolean();
                 }
                 return null;
             }

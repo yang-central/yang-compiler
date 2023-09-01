@@ -1,17 +1,13 @@
-package org.yangcentral.yangkit.plugin.validator;
+package org.yangcentral.yangkit.compiler.plugin.validator;
 
-import org.yangcentral.yangkit.compiler.Settings;
 import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
-import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
-import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPluginParameter;
 import org.yangcentral.yangkit.utils.file.FileUtil;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 
 public class YangValidator implements YangCompilerPlugin {
 

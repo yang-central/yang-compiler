@@ -1,5 +1,8 @@
-package org.yangcentral.yangkit.plugin.stat;
+package org.yangcentral.yangkit.compiler.plugin.stat;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
@@ -8,21 +11,27 @@ import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
-import org.yangcentral.yangkit.compiler.Settings;
+import org.yangcentral.yangkit.base.Yang;
+import org.yangcentral.yangkit.common.api.FName;
+import org.yangcentral.yangkit.common.api.QName;
 import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
 import org.yangcentral.yangkit.model.api.stmt.*;
 import org.yangcentral.yangkit.model.api.stmt.Module;
-import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
-import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPluginParameter;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 public class YangStatistics implements YangCompilerPlugin {
+    private List<Tag> tags = new ArrayList<>();
+    private String output;
 
     public YangNodeDescription getNodeDescription(SchemaNode  schemaNode){
         if(schemaNode == null){
@@ -46,12 +55,48 @@ public class YangStatistics implements YangCompilerPlugin {
         nodeDescription.setModule(schemaNode.getContext().getCurModule().getArgStr());
         nodeDescription.setActive(schemaNode.isActive());
         nodeDescription.setDeviated(schemaNode.isDeviated());
+        for(Tag tag:tags) {
+            String field = tag.getField();
+            FName fName = new FName(field);
+            QName keyword = null;
+            if(fName.getPrefix() == null){
+                keyword = new QName(Yang.NAMESPACE,fName.getLocalName());
+            } else {
+                YangSchemaContext schemaContext = schemaNode.getContext().getSchemaContext();
+                List<Module> matched = schemaContext.getModule(fName.getPrefix());
+                if(matched == null || matched.isEmpty()){
+                    continue;
+                }
+                URI namespace = matched.get(0).getMainModule().getNamespace().getUri();
+                keyword = new QName(namespace,fName.getLocalName());
+            }
+            if(tag.getValue() == null || tag.getValue().isEmpty()) {
+                List<YangStatement> statements = schemaNode.getSubStatement(keyword);
+                if(!statements.isEmpty()) {
+                    String arg = statements.get(0).getArgStr();
+                    if(arg == null || arg.isEmpty()){
+                        arg = "true";
+                    }
+                    Tag nodeTag = new Tag(tag.getName(), tag.getField());
+                    nodeTag.setValue(arg);
+                    nodeDescription.addTag(nodeTag);
+                }
+            } else  {
+                YangStatement statement = schemaNode.getSubStatement(keyword, tag.getValue());
+                if(statement != null){
+                    Tag nodeTag = new Tag(tag.getName(), tag.getField());
+                    nodeTag.setValue(tag.getValue());
+                    nodeDescription.addTag(nodeTag);
+                }
+            }
+        }
         return nodeDescription;
     }
     public List<YangNodeDescription> getNodeDescriptions(SchemaNodeContainer schemaNodeContainer){
         if(schemaNodeContainer == null){
             return new ArrayList<>();
         }
+
         List<YangNodeDescription> nodeDescriptions = new ArrayList<>();
         if(schemaNodeContainer instanceof SchemaNode){
             SchemaNode schemaNode = (SchemaNode) schemaNodeContainer;
@@ -62,6 +107,13 @@ public class YangStatistics implements YangCompilerPlugin {
         }
 
         for(SchemaNode schemaNode:schemaNodeContainer.getSchemaNodeChildren()){
+            List<Module> modules = schemaNode.getContext().getSchemaContext().getModules();
+            Module curModule = schemaNode.getContext().getCurModule().getMainModule();
+            if(!modules.contains(curModule)){
+                //only include the schema node belongs to modules of schema context
+                continue;
+            }
+
             if(schemaNode instanceof SchemaNodeContainer){
                 nodeDescriptions.addAll(getNodeDescriptions((SchemaNodeContainer) schemaNode));
             } else {
@@ -111,6 +163,10 @@ public class YangStatistics implements YangCompilerPlugin {
         detail.setColumnWidth(5,5000);
         detail.setColumnWidth(6,5000);
         detail.setColumnWidth(7,5000);
+        int size = tags.size();
+        for(int i= 0; i< size;i++) {
+            detail.setColumnWidth(8+i,5000);
+        }
 
         CellStyle style = workbook.createCellStyle();
         style.setBorderBottom(BorderStyle.THIN);
@@ -130,7 +186,9 @@ public class YangStatistics implements YangCompilerPlugin {
         detail.setDefaultColumnStyle(5, style);
         detail.setDefaultColumnStyle(6, style);
         detail.setDefaultColumnStyle(7, style);
-
+        for(int i= 0; i< size;i++) {
+            detail.setDefaultColumnStyle(8+i,style);
+        }
         //generate header
         SXSSFRow firstRow = detail.createRow(0);
         SXSSFCell yangpath= firstRow.createCell(0);
@@ -157,7 +215,11 @@ public class YangStatistics implements YangCompilerPlugin {
         SXSSFCell deviated = firstRow.createCell(7);
         deviated.setCellValue("deviated");
         deviated.setCellStyle(style);
-
+        for(int i= 0; i< size;i++) {
+            SXSSFCell tagCell = firstRow.createCell(8+i);
+            tagCell.setCellValue(tags.get(i).getName());
+            tagCell.setCellStyle(style);
+        }
 
         List<YangNodeDescription> totalPaths = getYangStatistics(schemaContext);
 
@@ -204,6 +266,17 @@ public class YangStatistics implements YangCompilerPlugin {
                 SXSSFCell deviateCell = row.createCell(7);
                 deviateCell.setCellValue(path.isDeviated());
                 deviateCell.setCellStyle(style);
+                for(int j= 0; j< size;j++) {
+                    SXSSFCell tagValCell = row.createCell(8+ j);
+                    Tag valueTag = path.getTag(tags.get(j).getName());
+                    if(valueTag == null){
+                        tagValCell.setCellValue("");
+                    } else {
+                        tagValCell.setCellValue(valueTag.getValue());
+                    }
+
+                    tagValCell.setCellStyle(style);
+                }
             }
         }
         return workbook;
@@ -211,18 +284,66 @@ public class YangStatistics implements YangCompilerPlugin {
     @Override
     public void run(YangSchemaContext schemaContext, YangCompiler yangCompiler, List<YangCompilerPluginParameter> parameters) throws YangCompilerException {
 
-        YangCompilerPluginParameter para = parameters.get(0);
-        if(!para.getName().equals("output")){
-            throw new YangCompilerException("unknown parameter:" + para.getName());
+        for(YangCompilerPluginParameter parameter: parameters){
+            if(parameter.getName().equals("output")){
+                output = (String) (parameter.getValue());
+            } else {
+                tags = (List<Tag>)(parameter.getValue());
+            }
         }
-        String output = (String) para.getValue();
+
         SXSSFWorkbook workbook = serializeXlsx(schemaContext);
         try {
-            workbook.write(new FileOutputStream(output));
+            File out = new File(output);
+            if(!out.exists()){
+                File parent = out.getParentFile();
+                if(!parent.exists()){
+                    parent.mkdirs();
+                }
+            }
+            workbook.write(new FileOutputStream(out));
             workbook.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
+    }
+
+    @Override
+    public YangCompilerPluginParameter getParameter(String name, JsonElement value) throws YangCompilerException {
+        if (!name.equals("output") && !name.equals("tag")){
+            throw new YangCompilerException("unknown parameter:" + name);
+        }
+        YangCompilerPluginParameter yangCompilerPluginParameter = new YangCompilerPluginParameter() {
+            @Override
+            public String getName() {
+                return name;
+            }
+
+            @Override
+            public Object getValue()  {
+                if(name.equals("output")){
+                    return value.getAsString();
+                } else {
+                    List<Tag> tags = new ArrayList<>();
+                    JsonArray tagArray = value.getAsJsonArray();
+                    int size = tagArray.size();
+                    for (int i=0; i< size;i++) {
+                        JsonObject tagElement = tagArray.get(i).getAsJsonObject();
+                        String name = tagElement.get("name").getAsString();
+                        String keyword = tagElement.get("keyword").getAsString();
+                        Tag tag = new Tag(name,keyword);
+                        if(tagElement.get("value")  != null){
+                            tag.setValue(tagElement.get("value").getAsString());
+                        }
+                        tags.add(tag);
+                    }
+                    return tags;
+                }
+
+            }
+
+        };
+        return yangCompilerPluginParameter;
     }
 }

@@ -19,6 +19,10 @@ public class ModuleInfo {
         this.revision = revision;
         this.organization = organization;
     }
+    public ModuleInfo(String name, String revision) {
+        this.name = name;
+        this.revision = revision;
+    }
 
     public void setSchema(URI schema) {
         this.schema = schema;
@@ -38,6 +42,20 @@ public class ModuleInfo {
 
     public URI getSchema() {
         return schema;
+    }
+
+    public boolean withRevision(){
+        if(revision != null && !revision.isEmpty()){
+            return true;
+        }
+        return false;
+    }
+
+    public String getModuleInfo(){
+        if(withRevision()){
+            return name + "@" + revision;
+        }
+        return name;
     }
 
     public static ModuleInfo parse(JsonElement element){

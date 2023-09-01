@@ -43,38 +43,7 @@ public class Settings {
     public List<ModuleInfo> getModuleInfos() {
         return moduleInfos;
     }
-    public List<ModuleInfo> getModuleInfos(String name){
-        List<ModuleInfo> matched = new ArrayList<>();
-        for(ModuleInfo moduleInfo:moduleInfos){
-            if(moduleInfo.getName().equals(name)){
-                matched.add(moduleInfo);
-            }
-        }
-        return matched;
-    }
-    public ModuleInfo getLatestModuleInfo(String name){
-        List<ModuleInfo> matched = getModuleInfos(name);
-        ModuleInfo latest = null;
-        for(ModuleInfo moduleInfo:matched){
-            if(latest == null){
-                latest = moduleInfo;
-            } else {
-                if(moduleInfo.getRevision().compareTo(latest.getRevision()) >0){
-                    latest = moduleInfo;
-                }
-            }
-        }
-        return latest;
-    }
-    public ModuleInfo getModuleInfo(String name,String revision){
-        for(ModuleInfo moduleInfo:moduleInfos){
-            if(moduleInfo.getName().equals(name)
-            && moduleInfo.getRevision().equals(revision)){
-                return moduleInfo;
-            }
-        }
-        return null;
-    }
+
 
     public Proxy getProxy() {
         return proxy;

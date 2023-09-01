@@ -1,10 +1,14 @@
 module yc-yang-compiler-settings {
   namespace "urn:yangcentral:yang:yang-compiler-settings";
   prefix "ycs";
+  import ietf-inet {
+    prefix inet;
+  }
   description "The definition about yang compiler settings.";
 
   revision 2022-09-02 {
-    description "init version.";}
+    description "init version.";
+  }
 
   container settings {
     leaf local-repository {
@@ -12,5 +16,5 @@ module yc-yang-compiler-settings {
       description "The definition of local repository. It should be a local directory.
                    if not present, the default is ${user.home}/.yang";
     }
-}
+  }
 }

@@ -1,4 +1,4 @@
-package org.yangcentral.yangkit.plugin.yangpackage;
+package org.yangcentral.yangkit.compiler.plugin.yangpackage;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

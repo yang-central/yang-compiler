@@ -3,8 +3,7 @@ package org.yangcentral.yangkit.compiler;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
-import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin;
 
 import java.io.File;
 import java.lang.reflect.Constructor;

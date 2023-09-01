@@ -1,4 +1,7 @@
-package org.yangcentral.yangkit.plugin.stat;
+package org.yangcentral.yangkit.compiler.plugin.stat;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class YangNodeDescription {
     private String path;
@@ -9,6 +12,8 @@ public class YangNodeDescription {
     private String module;
     private boolean isActive;
     private boolean isDeviated;
+
+    private List<Tag> tags = new ArrayList<>();
 
     public YangNodeDescription() {
     }
@@ -75,5 +80,26 @@ public class YangNodeDescription {
 
     public void setDeviated(boolean deviated) {
         isDeviated = deviated;
+    }
+
+    public List<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<Tag> tags) {
+        this.tags = tags;
+    }
+
+    public void addTag(Tag tag){
+        tags.add(tag);
+    }
+
+    public Tag getTag(String name) {
+        for(Tag tag :tags) {
+            if ( tag.getName().equals(name)){
+                return tag;
+            }
+        }
+        return null;
     }
 }

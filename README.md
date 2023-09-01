@@ -121,7 +121,7 @@ The plugin system of Yang compiler support built-in plugin and external plugin. 
 2.  class-path: the class path of plugin class, it MUST be provided when the plugin is an external plugin. It can be relative path or absolute path,
     if it's a relative path, the base path is plugins directory of application directory.
 
-3.  class: class name which implements org.yangcentral.yangkit.plugin.YangCompilerPlugin.
+3.  class: class name which implements org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin.
 4.  description: some description information about this plugin.
 5.  parameter: parameter information, it's json array. name and description of a parameter MUST be provided.
 
@@ -142,7 +142,7 @@ The plugin system of Yang compiler support built-in plugin and external plugin. 
    
                     "name": "validator_plugin",
 
-                    "class": "org.yangcentral.yangkit.plugin.validator.YangValidator",
+                    "class": "org.yangcentral.yangkit.compiler.plugin.validator.YangValidator",
    
                     "description": "a plugin for validating yang files",
    
@@ -220,39 +220,87 @@ The plugin system of Yang compiler support built-in plugin and external plugin. 
   |--build.json
 ```
 ### &emsp;Specification of compilation options
-1.  yang: yang directory to be compiled.
+1.  yang: source yang information, support directory, file list, module information, or hybrid.
 2.  plugin: a json array,specify the parameters of plugins which will be called.
     1. name: the plugin name.
     2. parameter: the parameters of a plugin. name and value should be specified.
 #### &emsp;&emsp;Examples:
 ```json
 {
+      "yang": {
 
-    "build": {
-
-      "yang": "yang",
+        "module": [
+          {
+            "name": "ietf-interfaces",
+            "revision": ""
+          },
+          {
+            "name": "huawei-ifm",
+            "revision": "2022-08-06"
+          },
+          {
+            "name": "huawei-bgp",
+            "revision": ""
+          },
+          {
+            "name": "huawei-network-instance",
+            "revision": ""
+          }
+        ],
+        "dir" : [
+          "yang/ietf",
+          "yang/huawei"
+        ],
+        "file" : [
+          "yang/ietf/ietf-interfaces.yang",
+          "yang/huawei/huawei-bgp.yang"
+        ]
+      },
  
       "plugin": [
         {
-   
           "name": "validator_plugin",
-
           "parameter": [
-           
             {
                "name": "output",
-
-               "value": "{yang}/validator.txt"
-            
+               "value": "yang/validator.txt"
             }
-           
            ]
-          
-          }
+        },
+        {
+          "name": "yangtree_generator",
+          "parameter": [
+            {
+              "name": "output",
+              "value": "tree"
+            },
+            {
+              "name": "expand-grouping",
+              "value": "true"
+            }
+          ]
+        },
+        {
+          "name": "yang_statistics",
+          "parameter" : [
+            {
+              "name": "output",
+              "value": "statistics/node_description.xlsx"
+            },
+            {
+              "name" : "tag",
+              "value": [
+                {
+                  "name": "operation-exclude",
+                  "keyword": "huawei-extension:operation-exclude"
+                }
+              ]
+            }
+          ]
+        }
          
        ]
-   
-    }
+  
 
  }
  ```

@@ -1,20 +1,56 @@
 {
-  "build": {
-    "yang": "C:\\Users\\f00360218\\Downloads\\NetEngine8000-X V800R022C00SPC600 yang",
-    "plugin": [
+  "yang": {
+    "module": [
       {
-        "name": "yangtree_generator",
-        "parameter": [
-          {
-            "name": "output",
-            "value": "{yang}/tree"
-          },
-          {
-            "name": "expand-grouping",
-            "value": "true"
-          }
-        ]
+        "name": "ietf-interfaces",
+        "revision": ""
+      },
+      {
+        "name": "huawei-ifm",
+        "revision": "2022-08-06"
+      },
+      {
+        "name": "huawei-bgp",
+        "revision": ""
+      },
+      {
+        "name": "huawei-network-instance",
+        "revision": ""
       }
     ]
-  }
+  },
+  "plugin": [
+    {
+      "name": "yangtree_generator",
+      "parameter": [
+        {
+          "name": "output",
+          "value": "tree"
+        },
+        {
+          "name": "expand-grouping",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "name": "yang_statistics",
+      "parameter" : [
+        {
+          "name": "output",
+          "value": "statistics/node_description.xlsx"
+        },
+        {
+          "name" : "tag",
+          "value": [
+            {
+              "name": "operation-exclude",
+              "keyword": "huawei-extension:operation-exclude"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+
 }

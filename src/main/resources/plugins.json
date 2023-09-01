@@ -4,7 +4,7 @@
       {
         "name": "schema_validator",
         "class-path": "",
-        "class": "org.yangcentral.yangkit.plugin.validator.YangValidator",
+        "class": "org.yangcentral.yangkit.compiler.plugin.validator.YangValidator",
         "description": "a plugin for validating yang files",
         "parameter": [
           {
@@ -16,7 +16,7 @@
       {
         "name": "yang_statistics",
         "class-path": "",
-        "class": "org.yangcentral.yangkit.plugin.stat.YangStatistics",
+        "class": "org.yangcentral.yangkit.compiler.plugin.stat.YangStatistics",
         "description": "a plugin for retrieving yang statistics",
         "parameter": [
           {
@@ -27,7 +27,7 @@
       },
       {
         "name": "yangtree_generator",
-        "class": "org.yangcentral.yangkit.plugin.yangtree.YangTreeGenerator",
+        "class": "org.yangcentral.yangkit.compiler.plugin.yangtree.YangTreeGenerator",
         "description": "a plugin for generating yang tree",
         "parameter": [
           {
@@ -46,7 +46,7 @@
       },
       {
         "name": "yangpackage_generator",
-        "class": "org.yangcentral.yangkit.plugin.yangpackage.YangPackageGenerator",
+        "class": "org.yangcentral.yangkit.compiler.plugin.yangpackage.YangPackageGenerator",
         "description": "a plugin for generating yang package",
         "parameter": [
           {

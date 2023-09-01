@@ -1,6 +1,7 @@
-package org.yangcentral.yangkit.plugin.yangpackage;
+package org.yangcentral.yangkit.compiler.plugin.yangpackage;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
@@ -9,8 +10,8 @@ import org.yangcentral.yangkit.model.api.stmt.Include;
 import org.yangcentral.yangkit.model.api.stmt.MainModule;
 import org.yangcentral.yangkit.model.api.stmt.Module;
 import org.yangcentral.yangkit.model.api.stmt.SubModule;
-import org.yangcentral.yangkit.plugin.YangCompilerPlugin;
-import org.yangcentral.yangkit.plugin.YangCompilerPluginParameter;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin;
+import org.yangcentral.yangkit.compiler.plugin.YangCompilerPluginParameter;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,7 +22,7 @@ import java.util.Properties;
 
 public class YangPackageGenerator implements YangCompilerPlugin {
     @Override
-    public YangCompilerPluginParameter getParameter(Properties compilerProps, String name, String value)
+    public YangCompilerPluginParameter getParameter(String name, JsonElement value)
             throws YangCompilerException {
         if(!name.equals("complete") && !name.equals("meta") && !name.equals("output")){
             throw new YangCompilerException("unrecognized parameter:"+ name);
@@ -35,12 +36,12 @@ public class YangPackageGenerator implements YangCompilerPlugin {
 
                 @Override
                 public Object getValue() throws YangCompilerException {
-                    return Boolean.valueOf(value);
+                    return value.getAsBoolean();
                 }
             };
             return pluginParameter;
         }
-        return YangCompilerPlugin.super.getParameter(compilerProps, name, value);
+        return YangCompilerPlugin.super.getParameter(name, value);
     }
 
     @Override
@@ -59,11 +60,11 @@ public class YangPackageGenerator implements YangCompilerPlugin {
             throw new YangCompilerException("missing mandatory parameter:output");
         }
 
-        File yangDir = yangCompiler.getYang();
+
         //search package_meta.json
-        File packageMetaFile = new File(yangDir,"package_meta.json");
+        File packageMetaFile = new File("package_meta.json");
         if(!packageMetaFile.exists()){
-            throw new YangCompilerException("missing package_meta.json in directory:"+yangDir.getAbsolutePath());
+            throw new YangCompilerException("missing package_meta.json.");
         }
 
         try {
@@ -93,7 +94,7 @@ public class YangPackageGenerator implements YangCompilerPlugin {
                     return false;
                 }
             };
-            File[] metaFiles = yangDir.listFiles(packageMetaFilter);
+
             List<Module> modules = schemaContext.getModules();
             for (Module module:modules){
                 if(module instanceof MainModule){

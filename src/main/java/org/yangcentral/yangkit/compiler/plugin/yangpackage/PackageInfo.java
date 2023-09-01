@@ -1,4 +1,4 @@
-package org.yangcentral.yangkit.plugin.yangpackage;
+package org.yangcentral.yangkit.compiler.plugin.yangpackage;
 
 import java.util.AbstractMap;
 import java.util.Map;

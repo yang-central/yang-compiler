@@ -1,0 +1,54 @@
+module yc-build {
+  namespace "urn:yangcentral:yang:yang-compiler-settings";
+  prefix "ycs";
+  yang-version "1.1";
+  import ietf-inet {
+    prefix inet;
+  }
+  description "The definition about yang compiler settings.";
+
+  revision 2022-09-02 {
+    description "init version.";
+  }
+  container yang {
+    leaf-list dir {
+      type string;
+    }
+    leaf-list file {
+      type string;
+    }
+    list module {
+      key "name revision";
+      leaf name {
+        type string;
+      }
+      leaf revision {
+        type string;
+      }
+      leaf organization {
+        type string;
+      }
+      leaf schema {
+        type inet:uri;
+      }
+    }
+  }
+  leaf settings {
+    type string;
+    description "the path of settings file.";
+  }
+  list plugin {
+    key name;
+    leaf name {
+      type string;
+    }
+    list parameter {
+        key name;
+        leaf name {
+          type string;
+        }
+        anydata value;
+    }
+  }
+
+}
