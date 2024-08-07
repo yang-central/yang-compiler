@@ -2,7 +2,6 @@ package org.yangcentral.yangkit.compiler.plugin.yangtree;
 
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import org.yangcentral.yangkit.common.api.QName;
 import org.yangcentral.yangkit.compiler.YangCompiler;
 import org.yangcentral.yangkit.compiler.YangCompilerException;
@@ -13,7 +12,7 @@ import org.yangcentral.yangkit.model.api.stmt.*;
 import org.yangcentral.yangkit.model.api.stmt.Module;
 import org.yangcentral.yangkit.model.api.stmt.ext.AugmentStructure;
 import org.yangcentral.yangkit.model.api.stmt.ext.YangData;
-import org.yangcentral.yangkit.model.api.stmt.ext.YangDataStructure;
+import org.yangcentral.yangkit.model.api.stmt.ext.YangStructure;
 import org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin;
 import org.yangcentral.yangkit.compiler.plugin.YangCompilerPluginParameter;
 import org.yangcentral.yangkit.utils.file.FileUtil;
@@ -57,7 +56,7 @@ public class YangTreeGenerator implements YangCompilerPlugin {
                 new QName("urn:ietf:params:xml:ns:yang:ietf-restconf","yang-data"));
 
         // yang structure extension
-        List<YangUnknown> yangStructureList = module.getUnknowns(YangDataStructure.YANG_KEYWORD);
+        List<YangUnknown> yangStructureList = module.getUnknowns(YangStructure.YANG_KEYWORD);
 
         // augment structure extension
         List<YangUnknown> augmentStructureList = module.getUnknowns(AugmentStructure.YANG_KEYWORD);
@@ -130,7 +129,7 @@ public class YangTreeGenerator implements YangCompilerPlugin {
         //structures
         if(!yangStructureList.isEmpty()){
             for(YangUnknown unknown :yangStructureList){
-                YangDataStructure structure = (YangDataStructure) unknown;
+                YangStructure structure = (YangStructure) unknown;
                 sb.append(TWO_SPACES);
                 sb.append("structure");
                 sb.append(" ");
@@ -337,7 +336,7 @@ public class YangTreeGenerator implements YangCompilerPlugin {
             SchemaNodeContainer parent = dataNode.getClosestAncestorNode();
             if(parent instanceof YangList){
                 YangList list = (YangList) parent;
-                if(list.getKey().getKeyNode(dataNode.getIdentifier())!= null){
+                if((list.getKey() != null) && (list.getKey().getKeyNode(dataNode.getIdentifier())!= null)) {
                     return true;
                 }
             }
