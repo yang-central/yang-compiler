@@ -70,7 +70,23 @@ This creates:
 * `build.json` — minimal compilation configuration.
 * `settings.json` — default settings pointing to `~/.yang` and yangcatalog.
 
-### Run the compiler
+### Zero-config compilation
+
+You can compile a single YANG file or a directory of YANG files without creating any configuration file:
+
+```bash
+# Linux/macOS
+./yangc compile my-model.yang       # compile a single file
+./yangc compile ./yang-models/      # compile all files in a directory
+
+# Windows
+.\yangc.bat compile my-model.yang
+.\yangc.bat compile .\yang-models\
+```
+
+The script automatically generates a temporary build configuration, runs the validator plugin, writes results to `validator.txt` in the current directory, and cleans up afterward.
+
+### Run the compiler with a build.json
 
 ```bash
 # Linux/macOS
