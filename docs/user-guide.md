@@ -57,7 +57,7 @@ The `settings.json` file controls global compiler behaviour such as the local re
     "local-repository": "/Users/llly/yang",
     "remote-repository": "https://yangcatalog.org/api/",
     "proxy": {
-      "url": "http:proxy.mydomain.com:8080",
+      "url": "http://proxy.mydomain.com:8080",
       "authentication": {
         "username": "foo",
         "password": "bar"

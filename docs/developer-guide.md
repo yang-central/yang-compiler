@@ -90,7 +90,7 @@ External plugins are developed in a separate Java project and loaded by the comp
         "name": "yang_comparator",
         "class-path": "yang-comparator/yang-comparator-1.0-SNAPSHOT.jar",
         "class": "com.huawei.yang.comparator.YangComparatorPlugin",
-        "description": "a plugin for comparing two yang schema.",
+        "description": "a plugin for comparing two yang schemas.",
         "parameter": [
           {
             "name": "old-yang",
