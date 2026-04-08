@@ -3,7 +3,8 @@
 ## Table of Contents
 1. [Make Application Package](#make-application-package)
 2. [Specification of Settings](#specification-of-settings)
-3. [Compile YANG Modules](#compile-yang-modules)
+3. [Zero-Config Compilation](#zero-config-compilation)
+4. [Compile YANG Modules](#compile-yang-modules)
 
 ---
 
@@ -78,6 +79,45 @@ The `settings.json` file controls global compiler behaviour such as the local re
   }
 }
 ```
+
+---
+
+## Zero-Config Compilation
+
+When you only need to validate a single YANG file or a directory of YANG files, you can use the `compile` subcommand without creating any `build.json` or `settings.json`. The CLI wrapper generates a temporary build configuration on the fly and discards it after the run.
+
+### Syntax
+
+```bash
+# Linux/macOS
+./yangc compile <file_or_directory>
+
+# Windows
+.\yangc.bat compile <file_or_directory>
+```
+
+### Examples
+
+```bash
+# Validate a single YANG file
+./yangc compile my-model.yang
+
+# Validate all YANG files in a directory
+./yangc compile ./yang-models/
+
+# Windows equivalents
+.\yangc.bat compile my-model.yang
+.\yangc.bat compile .\yang-models\
+```
+
+The script will:
+1. Check that the provided path exists.
+2. Generate a temporary build configuration with `validator_plugin` enabled.
+3. Run the compiler against the file or directory (`file` key for a single file, `dir` key for a directory).
+4. Write validation output to `validator.txt` in the current directory.
+5. Clean up the temporary configuration file.
+
+> **Note:** Zero-config compilation only runs `validator_plugin`. For more advanced scenarios (custom plugins, multiple sources, install), create a `build.json` and use the standard invocation described in [Compile YANG Modules](#compile-yang-modules).
 
 ---
 

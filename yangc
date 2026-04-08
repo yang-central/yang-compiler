@@ -8,15 +8,20 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ]; then
 Usage: ./yangc <command> [options]
 
 Commands:
-  init          Scaffold a new YANG compiler project in the current directory.
-                Creates a 'yang' directory, a default build.json, and a default
-                settings.json.
-  help, --help  Show this help message.
-  <other>       All other arguments are forwarded directly to the YANG compiler:
-                  java -jar $JAR [args...]
+  init                  Scaffold a new YANG compiler project in the current directory.
+                        Creates a 'yang' directory, a default build.json, and a default
+                        settings.json.
+  compile <path>        Zero-config compilation of a YANG file or directory.
+                        Automatically generates a temporary build configuration and
+                        runs the compiler against the specified file or directory.
+  help, --help          Show this help message.
+  <other>               All other arguments are forwarded directly to the YANG compiler:
+                          java -jar $JAR [args...]
 
 Examples:
   ./yangc init
+  ./yangc compile my-model.yang
+  ./yangc compile ./yang-models/
   ./yangc
   ./yangc option=build.json install
 EOF
@@ -79,6 +84,66 @@ SETTINGSJSON
 
   echo "Done. Place your YANG files in the 'yang/' directory and run './yangc' to compile."
   exit 0
+fi
+
+# Compile command (zero-config)
+if [ "$1" = "compile" ]; then
+  if [ -z "$2" ]; then
+    echo "Error: 'compile' requires a file or directory path."
+    echo "Usage: ./yangc compile <file_or_directory>"
+    exit 1
+  fi
+
+  TARGET="$2"
+
+  if [ ! -e "$TARGET" ]; then
+    echo "Error: Path not found: $TARGET"
+    exit 1
+  fi
+
+  # All other commands require the JAR
+  if [ ! -f "$JAR" ]; then
+    echo "Error: $JAR not found."
+    echo "Please build the project first by running: mvn clean install"
+    exit 1
+  fi
+
+  TEMP_BUILD=$(mktemp "${TMPDIR:-/tmp}/temp-build-XXXXXX.json")
+
+  # Escape special JSON characters in the path
+  ESCAPED_TARGET=$(printf '%s' "$TARGET" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
+  if [ -d "$TARGET" ]; then
+    YANG_KEY="dir"
+  else
+    YANG_KEY="file"
+  fi
+
+  cat > "$TEMP_BUILD" <<EOF
+{
+  "yang": {
+    "$YANG_KEY": [
+      "$ESCAPED_TARGET"
+    ]
+  },
+  "plugin": [
+    {
+      "name": "validator_plugin",
+      "parameter": [
+        {
+          "name": "output",
+          "value": "validator.txt"
+        }
+      ]
+    }
+  ]
+}
+EOF
+
+  java -jar "$JAR" "option=$TEMP_BUILD"
+  EXIT_CODE=$?
+  rm -f "$TEMP_BUILD"
+  exit $EXIT_CODE
 fi
 
 # All other commands require the JAR
