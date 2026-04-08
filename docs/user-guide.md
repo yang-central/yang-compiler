@@ -1,10 +1,114 @@
 # YANG Compiler — User Guide
 
 ## Table of Contents
-1. [Make Application Package](#make-application-package)
-2. [Specification of Settings](#specification-of-settings)
-3. [Zero-Config Compilation](#zero-config-compilation)
+1. [Quick CLI Reference](#quick-cli-reference)
+2. [Make Application Package](#make-application-package)
+3. [Specification of Settings](#specification-of-settings)
 4. [Compile YANG Modules](#compile-yang-modules)
+
+---
+
+## Quick CLI Reference
+
+The wrapper scripts (`yangc` on Linux/macOS, `yangc.bat` on Windows) expose three modes of operation:
+
+| Invocation | Description |
+|---|---|
+| `./yangc init` | Scaffold a new project. |
+| `./yangc compile <inputs...> [options]` | Zero-config compilation (this section). |
+| `./yangc [args...]` | Forward arguments directly to the compiler JAR. |
+
+---
+
+### `yangc compile` — Zero-Config Compilation
+
+Use the `compile` subcommand when you want to validate or process YANG sources without writing a `build.json` first. The CLI wrapper generates a temporary build configuration on the fly, runs the compiler, and discards the temporary file after the run.
+
+#### Syntax
+
+```bash
+# Linux/macOS
+./yangc compile <inputs...> [--plugin <name>] [--param key=value ...]
+
+# Windows
+.\yangc.bat compile <inputs...> [--plugin <name>] [--param key=value ...]
+```
+
+#### Input Forms
+
+Each positional argument is an **input**. You can supply one or more inputs in a single command. The following forms are supported:
+
+| Form | Example | Description |
+|---|---|---|
+| Directory | `./yang` | All `.yang` files in the directory are compiled. Maps to the `dir` key in build.json. |
+| `.yang` file | `my-model.yang` | A single YANG source file. Maps to the `file` key in build.json. |
+| Module name | `ietf-interfaces` | A module resolved from the local or remote repository. Maps to the `module` key in build.json with an empty revision. |
+| Module with revision | `ietf-interfaces@2018-02-20` | A specific revision of a module. Maps to the `module` key in build.json with the given revision date. |
+
+Multiple inputs of different forms may be combined in a single command, for example:
+
+```bash
+./yangc compile ./yang ietf-interfaces@2018-02-20
+```
+
+#### Options
+
+| Option | Description |
+|---|---|
+| `--plugin <name>` | Name of the plugin to run. **Default:** `validator_plugin`. Only one `--plugin` is allowed per invocation. |
+| `--param key=value` | Pass a parameter to the plugin. May be repeated for multiple parameters. |
+
+#### Default Plugin Behaviour
+
+When `--plugin` is not specified, `validator_plugin` is used automatically. The validation result is written to `validator.txt` in the current working directory.
+
+If you specify `--param`, only the parameters you provide are passed to the plugin (no implicit defaults are added).
+
+#### Single-Plugin Restriction
+
+The `compile` subcommand is designed for quick, single-plugin workflows. Supplying `--plugin` more than once is an error:
+
+```
+Error: Only one --plugin is allowed in quick CLI mode.
+For multiple plugins, use a build.json file and run: ./yangc option=build.json
+```
+
+When you need to run multiple plugins in one pass, create a `build.json` and use the standard invocation (see [Running the Compiler](#running-the-compiler)).
+
+#### When to Use `build.json` Instead
+
+Use a `build.json` file when you need any of the following:
+
+* Multiple plugins in a single compilation run.
+* Complex plugin parameters (e.g., list-valued parameters like `tag`).
+* Reproducible CI/CD builds that should not depend on CLI flags.
+* Custom `settings.json` path.
+* The `install` flag (copy compiled files into the local repository).
+
+Run `./yangc init` to generate a starter `build.json` and `settings.json`.
+
+#### Examples
+
+```bash
+# Validate all YANG files in a directory (default plugin)
+./yangc compile ./yang
+
+# Validate two individual YANG files
+./yangc compile a.yang b.yang
+
+# Resolve and validate a module by name
+./yangc compile ietf-interfaces
+
+# Resolve a specific revision and run a custom plugin with a parameter
+./yangc compile ietf-interfaces@2018-02-20 --plugin yangtree_generator --param output=tree
+
+# Mix directory and module inputs
+./yangc compile ./yang ietf-interfaces@2018-02-20
+
+# Windows equivalents
+.\yangc.bat compile .\yang
+.\yangc.bat compile ietf-interfaces@2018-02-20 --plugin yangtree_generator --param output=tree
+```
 
 ---
 
@@ -79,45 +183,6 @@ The `settings.json` file controls global compiler behaviour such as the local re
   }
 }
 ```
-
----
-
-## Zero-Config Compilation
-
-When you only need to validate a single YANG file or a directory of YANG files, you can use the `compile` subcommand without creating any `build.json` or `settings.json`. The CLI wrapper generates a temporary build configuration on the fly and discards it after the run.
-
-### Syntax
-
-```bash
-# Linux/macOS
-./yangc compile <file_or_directory>
-
-# Windows
-.\yangc.bat compile <file_or_directory>
-```
-
-### Examples
-
-```bash
-# Validate a single YANG file
-./yangc compile my-model.yang
-
-# Validate all YANG files in a directory
-./yangc compile ./yang-models/
-
-# Windows equivalents
-.\yangc.bat compile my-model.yang
-.\yangc.bat compile .\yang-models\
-```
-
-The script will:
-1. Check that the provided path exists.
-2. Generate a temporary build configuration with `validator_plugin` enabled.
-3. Run the compiler against the file or directory (`file` key for a single file, `dir` key for a directory).
-4. Write validation output to `validator.txt` in the current directory.
-5. Clean up the temporary configuration file.
-
-> **Note:** Zero-config compilation only runs `validator_plugin`. For more advanced scenarios (custom plugins, multiple sources, install), create a `build.json` and use the standard invocation described in [Compile YANG Modules](#compile-yang-modules).
 
 ---
 
