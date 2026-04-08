@@ -2,14 +2,24 @@
 
 ## Overview
 
-YANG Compiler is a tool based on [YangKit](https://github.com/yang-central/yangkit) that solves the problem of YANG module compilation dependencies. When validating a YANG module, every missing dependency must be available on the path. Because dependencies are chained, this can become very tedious. YANG Compiler solves this by resolving and downloading dependencies automatically:
+YANG Compiler is a plugin-extensible tool for compiling and processing YANG models. Built on [YangKit](https://github.com/yang-central/yangkit), it helps developers validate models, resolve dependencies, retrieve missing modules, and build custom workflows through built-in and external plugins.
 
-1. Search the YANG sources being compiled.
-2. Search the local repository (`{user.home}/.yang` by default, or as configured in `settings.json`).
-3. Use module information in `settings.json` (if provided) to download the missing file.
-4. Search the remote repository ([yangcatalog](https://yangcatalog.org/api/) by default).
+## Architecture
 
-Downloaded dependencies are cached in the local repository for future use. YANG Compiler also provides a plugin system so developers can extend it with custom functionality.
+The compiler resolves input modules and their dependencies through configurable sources, then executes processing steps through a plugin-based workflow.
+
+![YANG Compiler Architecture](src/main/resources/yang-compiler.png)
+
+## Key Capabilities
+
+- Compile and process YANG models from files, directories, and module references
+- Resolve dependencies automatically: local repository → `settings.json` module info → remote repository ([yangcatalog](https://yangcatalog.org/api/) by default)
+- Cache retrieved modules in the local repository (`{user.home}/.yang`) for future use
+- Validate YANG models and write results to a report file via the built-in `validator_plugin`
+- Extend processing through built-in or external plugins, each configurable with custom parameters
+- Configure global behavior through `settings.json` (repository paths, proxy, authentication)
+- Define reproducible build workflows through `build.json` (inputs, plugins, parameters)
+- Install compiled YANG files into the local repository with the `install` flag
 
 ## Installation
 
@@ -36,37 +46,24 @@ Wrapper scripts (`yangc` on Linux/macOS, `yangc.bat` on Windows) are provided so
 chmod +x yangc
 ```
 
-### Scaffold a new project
-
 ```bash
+# Scaffold a new project (creates yang/, build.json, settings.json)
 ./yangc init
-```
 
-Creates a `yang/` directory, a default `build.json`, and a default `settings.json`.
-
-### Compile YANG sources (zero-config)
-
-```bash
-./yangc compile <inputs...> [--plugin <name>] [--param key=value ...]
-```
-
-Each input can be a directory, a `.yang` file, a module name, or a `module@revision` pair.
-The default plugin is `validator_plugin`; results are written to `validator.txt`.
-
-### Use a full build.json
-
-```bash
-./yangc                              # uses build.json in the current directory
-./yangc option=my-build.json install # custom build file + install compiled files
-```
-
-## Examples
-
-```bash
-./yangc init
+# Compile all YANG files in a directory (default: validator_plugin)
 ./yangc compile ./yang
+
+# Resolve and compile a module by name
 ./yangc compile ietf-interfaces
+
+# Compile a specific revision with a custom plugin and parameter
 ./yangc compile ietf-interfaces@2018-02-20 --plugin yangtree_generator --param output=tree
+
+# Run a full build from build.json
+./yangc
+
+# Run a full build and install compiled files into the local repository
+./yangc option=my-build.json install
 ```
 
 ## Documentation
