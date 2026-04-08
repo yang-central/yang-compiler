@@ -8,22 +8,27 @@ if [ "$1" = "help" ] || [ "$1" = "--help" ]; then
 Usage: ./yangc <command> [options]
 
 Commands:
-  init                  Scaffold a new YANG compiler project in the current directory.
-                        Creates a 'yang' directory, a default build.json, and a default
-                        settings.json.
-  compile <path>        Zero-config compilation of a YANG file or directory.
-                        Automatically generates a temporary build configuration and
-                        runs the compiler against the specified file or directory.
-  help, --help          Show this help message.
-  <other>               All other arguments are forwarded directly to the YANG compiler:
-                          java -jar $JAR [args...]
+  init                    Scaffold a new YANG compiler project in the current directory.
+                          Creates a 'yang' directory, a default build.json, and a default
+                          settings.json.
+  compile <inputs...>     Zero-config compilation. Each input can be:
+                            - A directory path (e.g. ./yang)
+                            - A .yang file path (e.g. my-model.yang)
+                            - A module name (e.g. ietf-interfaces)
+                            - A module name with revision (e.g. ietf-interfaces@2018-02-20)
+                          Multiple inputs are allowed.
+    --plugin <name>       Plugin to use (default: validator_plugin).
+                          Only one --plugin is allowed; for multiple plugins use build.json.
+    --param key=value     Plugin parameter. May be repeated.
+  help, --help            Show this help message.
+  <other>                 All other arguments are forwarded directly to the YANG compiler:
+                            java -jar $JAR [args...]
 
 Examples:
   ./yangc init
-  ./yangc compile my-model.yang
-  ./yangc compile ./yang-models/
-  ./yangc
-  ./yangc option=build.json install
+  ./yangc compile ./yang
+  ./yangc compile ietf-interfaces
+  ./yangc compile ietf-interfaces@2018-02-20 --plugin yangtree_generator --param output=tree
 EOF
   exit 0
 fi
@@ -86,22 +91,61 @@ SETTINGSJSON
   exit 0
 fi
 
-# Compile command (zero-config)
+# Compile command (zero-config, supports multiple inputs and optional --plugin / --param)
 if [ "$1" = "compile" ]; then
-  if [ -z "$2" ]; then
-    echo "Error: 'compile' requires a file or directory path."
-    echo "Usage: ./yangc compile <file_or_directory>"
+  shift
+
+  if [ $# -eq 0 ]; then
+    echo "Error: 'compile' requires at least one input (file, directory, or module name)."
+    echo "Usage: ./yangc compile <inputs...> [--plugin <name>] [--param key=value ...]"
     exit 1
   fi
 
-  TARGET="$2"
+  PLUGIN=""
+  PLUGIN_COUNT=0
+  PARAMS=()
+  INPUTS=()
 
-  if [ ! -e "$TARGET" ]; then
-    echo "Error: Path not found: $TARGET"
+  # Parse arguments: collect inputs and options
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --plugin)
+        PLUGIN_COUNT=$((PLUGIN_COUNT + 1))
+        if [ "$PLUGIN_COUNT" -gt 1 ]; then
+          echo "Error: Only one --plugin is allowed in quick CLI mode."
+          echo "For multiple plugins, use a build.json file and run: ./yangc option=build.json"
+          exit 1
+        fi
+        if [ -z "$2" ]; then
+          echo "Error: --plugin requires a value."
+          exit 1
+        fi
+        PLUGIN="$2"
+        shift 2
+        ;;
+      --param)
+        if [ -z "$2" ]; then
+          echo "Error: --param requires a key=value argument."
+          exit 1
+        fi
+        PARAMS+=("$2")
+        shift 2
+        ;;
+      *)
+        INPUTS+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [ ${#INPUTS[@]} -eq 0 ]; then
+    echo "Error: 'compile' requires at least one input (file, directory, or module name)."
+    echo "Usage: ./yangc compile <inputs...> [--plugin <name>] [--param key=value ...]"
     exit 1
   fi
 
-  # All other commands require the JAR
+  [ -z "$PLUGIN" ] && PLUGIN="validator_plugin"
+
   if [ ! -f "$JAR" ]; then
     echo "Error: $JAR not found."
     echo "Please build the project first by running: mvn clean install"
@@ -110,35 +154,67 @@ if [ "$1" = "compile" ]; then
 
   TEMP_BUILD=$(mktemp "${TMPDIR:-/tmp}/temp-build-XXXXXX.json")
 
-  # Escape special JSON characters in the path
-  ESCAPED_TARGET=$(printf '%s' "$TARGET" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  # Categorise each input as directory, file, or module name
+  DIR_LIST=()
+  FILE_LIST=()
+  MODULE_LIST=()
 
-  if [ -d "$TARGET" ]; then
-    YANG_KEY="dir"
+  for INPUT in "${INPUTS[@]}"; do
+    if [ -d "$INPUT" ]; then
+      ESCAPED=$(printf '%s' "$INPUT" | sed 's/\\/\\\\/g; s/"/\\"/g')
+      DIR_LIST+=("\"$ESCAPED\"")
+    elif [ -f "$INPUT" ]; then
+      ESCAPED=$(printf '%s' "$INPUT" | sed 's/\\/\\\\/g; s/"/\\"/g')
+      FILE_LIST+=("\"$ESCAPED\"")
+    elif [[ "$INPUT" == *.yang ]]; then
+      echo "Error: File not found: $INPUT"
+      rm -f "$TEMP_BUILD"
+      exit 1
+    else
+      # Treat as module name, optionally with @revision
+      if [[ "$INPUT" == *@* ]]; then
+        MOD_NAME="${INPUT%%@*}"
+        MOD_REV="${INPUT#*@}"
+      else
+        MOD_NAME="$INPUT"
+        MOD_REV=""
+      fi
+      MOD_NAME_ESC=$(printf '%s' "$MOD_NAME" | sed 's/\\/\\\\/g; s/"/\\"/g')
+      MOD_REV_ESC=$(printf '%s' "$MOD_REV" | sed 's/\\/\\\\/g; s/"/\\"/g')
+      MODULE_LIST+=("{\"name\":\"$MOD_NAME_ESC\",\"revision\":\"$MOD_REV_ESC\"}")
+    fi
+  done
+
+  # Build the "yang" section of the JSON
+  YANG_PARTS=()
+  [ ${#DIR_LIST[@]} -gt 0 ] && YANG_PARTS+=("\"dir\":[$(IFS=','; echo "${DIR_LIST[*]}")]")
+  [ ${#FILE_LIST[@]} -gt 0 ] && YANG_PARTS+=("\"file\":[$(IFS=','; echo "${FILE_LIST[*]}")]")
+  [ ${#MODULE_LIST[@]} -gt 0 ] && YANG_PARTS+=("\"module\":[$(IFS=','; echo "${MODULE_LIST[*]}")]")
+  YANG_JSON=$(IFS=','; echo "${YANG_PARTS[*]}")
+
+  # Build plugin parameters JSON
+  PARAM_ENTRIES=()
+  for PARAM in "${PARAMS[@]}"; do
+    PKEY="${PARAM%%=*}"
+    PVAL="${PARAM#*=}"
+    PKEY_ESC=$(printf '%s' "$PKEY" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    PVAL_ESC=$(printf '%s' "$PVAL" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    PARAM_ENTRIES+=("{\"name\":\"$PKEY_ESC\",\"value\":\"$PVAL_ESC\"}")
+  done
+
+  # Build plugin JSON; when no --param given and using the default plugin, add the default output param
+  PLUGIN_ESC=$(printf '%s' "$PLUGIN" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  if [ ${#PARAM_ENTRIES[@]} -gt 0 ]; then
+    PARAM_JSON=$(IFS=','; echo "${PARAM_ENTRIES[*]}")
+    PLUGIN_JSON="{\"name\":\"$PLUGIN_ESC\",\"parameter\":[$PARAM_JSON]}"
+  elif [ "$PLUGIN" = "validator_plugin" ]; then
+    PLUGIN_JSON="{\"name\":\"$PLUGIN_ESC\",\"parameter\":[{\"name\":\"output\",\"value\":\"validator.txt\"}]}"
   else
-    YANG_KEY="file"
+    PLUGIN_JSON="{\"name\":\"$PLUGIN_ESC\"}"
   fi
 
-  cat > "$TEMP_BUILD" <<EOF
-{
-  "yang": {
-    "$YANG_KEY": [
-      "$ESCAPED_TARGET"
-    ]
-  },
-  "plugin": [
-    {
-      "name": "validator_plugin",
-      "parameter": [
-        {
-          "name": "output",
-          "value": "validator.txt"
-        }
-      ]
-    }
-  ]
-}
-EOF
+  # Write the temporary build configuration
+  printf '{\n  "yang": {%s},\n  "plugin": [%s]\n}\n' "$YANG_JSON" "$PLUGIN_JSON" > "$TEMP_BUILD"
 
   java -jar "$JAR" "option=$TEMP_BUILD"
   EXIT_CODE=$?
