@@ -1,0 +1,92 @@
+#!/bin/bash
+
+JAR="target/yang-compiler-1.0-SNAPSHOT.jar"
+
+# Help command (no JAR needed)
+if [ "$1" = "help" ] || [ "$1" = "--help" ]; then
+  cat <<EOF
+Usage: ./yangc <command> [options]
+
+Commands:
+  init          Scaffold a new YANG compiler project in the current directory.
+                Creates a 'yang' directory, a default build.json, and a default
+                settings.json.
+  help, --help  Show this help message.
+  <other>       All other arguments are forwarded directly to the YANG compiler:
+                  java -jar $JAR [args...]
+
+Examples:
+  ./yangc init
+  ./yangc
+  ./yangc option=build.json install
+EOF
+  exit 0
+fi
+
+# Init command (no JAR needed)
+if [ "$1" = "init" ]; then
+  echo "Initializing YANG compiler project..."
+
+  # Create yang directory
+  if [ -d "yang" ]; then
+    echo "  Directory yang/ already exists, skipping."
+  else
+    mkdir yang
+    echo "  Created directory: yang/"
+  fi
+
+  # Generate default build.json
+  if [ -f "build.json" ]; then
+    echo "  build.json already exists, skipping."
+  else
+    cat > build.json <<'BUILDJSON'
+{
+  "yang": {
+    "dir": [
+      "yang"
+    ]
+  },
+  "plugin": [
+    {
+      "name": "validator_plugin",
+      "parameter": [
+        {
+          "name": "output",
+          "value": "yang/validator.txt"
+        }
+      ]
+    }
+  ]
+}
+BUILDJSON
+    echo "  Created: build.json"
+  fi
+
+  # Generate default settings.json
+  if [ -f "settings.json" ]; then
+    echo "  settings.json already exists, skipping."
+  else
+    cat > settings.json <<'SETTINGSJSON'
+{
+  "settings": {
+    "local-repository": "~/.yang",
+    "remote-repository": "https://yangcatalog.org/api/"
+  }
+}
+SETTINGSJSON
+    echo "  Created: settings.json"
+  fi
+
+  echo "Done. Place your YANG files in the 'yang/' directory and run './yangc' to compile."
+  exit 0
+fi
+
+# All other commands require the JAR
+if [ ! -f "$JAR" ]; then
+  echo "Error: $JAR not found."
+  echo "Please build the project first by running: mvn clean install"
+  exit 1
+fi
+
+# Default: forward all arguments to the YANG compiler
+exec java -jar "$JAR" "$@"

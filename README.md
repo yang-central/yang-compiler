@@ -311,4 +311,47 @@ The plugin system of Yang compiler support built-in plugin and external plugin. 
 ```
 #### &emsp;&emsp;Parameters
 1. option: optional, specify the build option. It's the path of build.json, if not present, the build.json in current directory will be used.
-2. install: optional, if it's not present, the yang files to be complied will not be copied into local repo directory, if it's present, all yang files which is successfully compiled will be copied into local repository. 
+2. install: optional, if it's not present, the yang files to be complied will not be copied into local repo directory, if it's present, all yang files which is successfully compiled will be copied into local repository.
+
+### &emsp;CLI Wrapper (`yangc` / `yangc.bat`)
+
+A convenience wrapper script is provided so you do not need to type the full `java -jar` command every time.
+
+#### &emsp;&emsp;Quick Start (Linux/macOS)
+```
+# chmod +x yangc      # only needed once
+# ./yangc --help
+```
+
+#### &emsp;&emsp;Quick Start (Windows)
+```
+> yangc.bat --help
+```
+
+#### &emsp;&emsp;Scaffold a new project with `init`
+
+The `init` command instantly generates the required directory structure and boilerplate JSON files — no manual copy-pasting needed:
+
+```
+# ./yangc init        (Linux/macOS)
+> yangc.bat init      (Windows)
+```
+
+This creates:
+* `yang/` — directory where you place your YANG source files.
+* `build.json` — minimal compilation configuration pointing to the `yang/` directory and using the `validator_plugin`.
+* `settings.json` — default settings with `local-repository` set to `~/.yang` and `remote-repository` set to `https://yangcatalog.org/api/`.
+
+#### &emsp;&emsp;Run the compiler
+
+Instead of `java -jar target/yang-compiler-1.0-SNAPSHOT.jar`, you can use the wrapper:
+
+```
+# ./yangc                                   # uses build.json in current directory
+# ./yangc option=my-build.json install      # custom build file + install compiled files
+```
+
+All arguments are forwarded to the underlying Java process unchanged.
+
+> **Note:** The wrapper requires `target/yang-compiler-1.0-SNAPSHOT.jar` to be present.
+> Run `mvn clean install` first if you see a "not found" error. 
