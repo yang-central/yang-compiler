@@ -2,7 +2,7 @@
   "plugins": {
     "plugin": [
       {
-        "name": "schema_validator",
+        "name": "validator_plugin",
         "class-path": "",
         "class": "org.yangcentral.yangkit.compiler.plugin.validator.YangValidator",
         "description": "a plugin for validating yang files",
