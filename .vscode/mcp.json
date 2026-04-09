@@ -4,8 +4,12 @@
       "type": "stdio",
       "command": "python",
       "args": [
-        "${workspaceFolder}/python/src/yang_compiler/mcp_server.py"
-      ]
+        "-m",
+        "yang_compiler.mcp_server"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/python/src"
+      }
     }
   }
 }

@@ -4,10 +4,15 @@ MCP server for YANG Compiler.
 Exposes YANG validation and compilation tools to GitHub Copilot Chat and
 other MCP-compatible clients via the stdio transport.
 
-Usage:
-    python -m yang_compiler.mcp_server
+Prerequisites:
+    pip install 'mcp>=1.23.0'
 
-Or, after installing the package with the 'mcp' extra:
+Usage (after installing dependencies):
+    # Using the module (requires PYTHONPATH to include python/src):
+    PYTHONPATH=python/src python -m yang_compiler.mcp_server
+
+    # Or, after installing the package with the 'mcp' extra:
+    pip install -e 'python/[mcp]'
     yang-compiler-mcp
 """
 
@@ -38,8 +43,12 @@ mcp = FastMCP("yang-compiler")
 
 
 def _find_local_jar() -> Optional[str]:
-    """Look for a pre-built JAR in the project's target/ directory."""
-    project_root = Path(__file__).resolve().parent.parent.parent.parent
+    """Look for a pre-built JAR in the project's target/ directory.
+
+    Expected layout (four levels up from this file):
+      <project_root>/python/src/yang_compiler/mcp_server.py
+    """
+    project_root = Path(__file__).resolve().parents[3]
     target_jars = sorted(project_root.glob("target/yang-compiler-*.jar"))
     if target_jars:
         return str(target_jars[-1])
