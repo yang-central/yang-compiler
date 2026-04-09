@@ -29,14 +29,14 @@ jobs:
       run: mvn test
       
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: yang-compiler-jar
         path: target/yang-compiler-*.jar
         
     - name: Upload test reports
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-reports
         path: target/surefire-reports/
