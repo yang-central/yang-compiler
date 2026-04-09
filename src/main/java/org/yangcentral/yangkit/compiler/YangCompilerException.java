@@ -17,4 +17,12 @@ public class YangCompilerException extends Exception{
     public YangCompilerException(String message) {
         super(message);
     }
+
+    public YangCompilerException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ModuleId getModule() {
+        return module;
+    }
 }

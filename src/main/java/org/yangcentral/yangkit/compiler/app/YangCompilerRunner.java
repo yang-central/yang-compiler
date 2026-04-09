@@ -24,7 +24,7 @@ import java.util.Scanner;
 
 public class YangCompilerRunner {
     private static final Logger logger = LoggerFactory.getLogger(YangCompilerRunner.class);
-    private static List<PluginInfo> parsePlugins(File pluginsFile,String str){
+    private static List<PluginInfo> parsePlugins(File pluginsFile,String str) throws YangCompilerException {
         List<PluginInfo> pluginInfos = new ArrayList<>();
         JsonElement pluginsElement = JsonParser.parseString(str);
         JsonObject jsonObject = pluginsElement.getAsJsonObject();
@@ -37,7 +37,7 @@ public class YangCompilerRunner {
         }
         return pluginInfos;
     }
-    private static void preparePlugins(YangCompiler yangCompiler) throws IOException, URISyntaxException {
+    private static void preparePlugins(YangCompiler yangCompiler) throws IOException, URISyntaxException, YangCompilerException {
         InputStream inputStream = yangCompiler.getClass().getResourceAsStream("/plugins.json");
         Scanner s = new Scanner(inputStream).useDelimiter("\\A");
         String result = s.hasNext()?s.next():"";
@@ -87,12 +87,12 @@ public class YangCompilerRunner {
         }
         // get build option
         File optionFile = new File(option);
-        BuildOption buildOption;
+        BuildOption buildOption = null;
         try {
             buildOption = ConfigurationLoader.loadBuildConfig(optionFile);
         } catch (Exception e) {
             logger.error("Failed to load build configuration: {}", e.getMessage(), e);
-            return;
+            System.exit(1);
         }
         
         // get settings
@@ -114,19 +114,24 @@ public class YangCompilerRunner {
                     + File.separator
                     + "settings.json";
         }
-        Settings settings;
+        Settings settings = null;
         File settingsfile = new File(settingsPath);
         try {
             settings = ConfigurationLoader.loadSettings(settingsfile);
         } catch (Exception e) {
             logger.error("Failed to load settings: {}", e.getMessage(), e);
-            return;
+            System.exit(1);
         }
         YangCompiler compiler = new YangCompiler();
         compiler.setBuildOption(buildOption);
         compiler.setSettings(settings);
         compiler.setInstall(install);
-        preparePlugins(compiler);
+        try {
+            preparePlugins(compiler);
+        } catch (YangCompilerException e) {
+            logger.error("Failed to load plugins: {}", e.getMessage(), e);
+            System.exit(1);
+        }
         try {
             compiler.compile();
         } catch (YangCompilerException e) {

@@ -1,5 +1,6 @@
 package org.yangcentral.yangkit.compiler.config;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import org.slf4j.Logger;
@@ -12,13 +13,13 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * 配置文件加载器，支持JSON和YAML格式
  */
 public class ConfigurationLoader {
     private static final Logger logger = LoggerFactory.getLogger(ConfigurationLoader.class);
+    private static final Gson GSON = new Gson();
 
     /**
      * 加载构建配置（build.json或build.yaml）
@@ -40,7 +41,7 @@ public class ConfigurationLoader {
         } else if (fileName.endsWith(".json")) {
             return parseJsonBuildConfig(configFile);
         } else {
-            throw new IllegalArgumentException("Unsupported config format: " + fileName 
+            throw new IllegalArgumentException("Unsupported config format: " + fileName
                 + ". Supported formats: .json, .yaml, .yml");
         }
     }
@@ -80,16 +81,16 @@ public class ConfigurationLoader {
     }
 
     /**
-     * 解析YAML格式的构建配置
+     * 解析YAML格式的构建配置（使用Gson转换，避免手写转换的脆弱性）
      */
     private static BuildOption parseYamlBuildConfig(File file) throws IOException {
         Yaml yaml = new Yaml();
-        Map<String, Object> data = yaml.load(new FileInputStream(file));
-        
-        // 将YAML数据转换为JSON字符串，然后复用现有的BuildOption.parse方法
-        String jsonString = convertToJsonString(data);
-        JsonElement jsonElement = JsonParser.parseString(jsonString);
-        return BuildOption.parse(jsonElement);
+        try (FileInputStream fis = new FileInputStream(file)) {
+            Object data = yaml.load(fis);
+            String jsonString = GSON.toJson(data);
+            JsonElement jsonElement = JsonParser.parseString(jsonString);
+            return BuildOption.parse(jsonElement);
+        }
     }
 
     /**
@@ -101,89 +102,14 @@ public class ConfigurationLoader {
     }
 
     /**
-     * 解析YAML格式的设置
+     * 解析YAML格式的设置（使用Gson转换，避免手写转换的脆弱性）
      */
     private static Settings parseYamlSettings(File file) throws IOException {
         Yaml yaml = new Yaml();
-        Map<String, Object> data = yaml.load(new FileInputStream(file));
-        
-        // 将YAML数据转换为JSON字符串，然后复用现有的Settings.parse方法
-        String jsonString = convertToJsonString(data);
-        return Settings.parse(jsonString);
-    }
-
-    /**
-     * 将Map转换为JSON字符串（简化实现）
-     * 实际项目中可以使用Gson或其他库进行转换
-     */
-    private static String convertToJsonString(Map<String, Object> data) {
-        // 这里使用简单的递归转换
-        // 在生产环境中，建议使用Gson的toJsonTree方法
-        StringBuilder sb = new StringBuilder();
-        convertMapToJson(data, sb, 0);
-        return sb.toString();
-    }
-
-    private static void convertMapToJson(Map<String, Object> map, StringBuilder sb, int indent) {
-        sb.append("{\n");
-        boolean first = true;
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            if (!first) {
-                sb.append(",\n");
-            }
-            addIndent(sb, indent + 1);
-            sb.append("\"").append(escapeJson(entry.getKey())).append("\": ");
-            convertValueToJson(entry.getValue(), sb, indent + 1);
-            first = false;
+        try (FileInputStream fis = new FileInputStream(file)) {
+            Object data = yaml.load(fis);
+            String jsonString = GSON.toJson(data);
+            return Settings.parse(jsonString);
         }
-        sb.append("\n");
-        addIndent(sb, indent);
-        sb.append("}");
-    }
-
-    private static void convertValueToJson(Object value, StringBuilder sb, int indent) {
-        if (value == null) {
-            sb.append("null");
-        } else if (value instanceof String) {
-            sb.append("\"").append(escapeJson((String) value)).append("\"");
-        } else if (value instanceof Number || value instanceof Boolean) {
-            sb.append(value.toString());
-        } else if (value instanceof Map) {
-            convertMapToJson((Map<String, Object>) value, sb, indent);
-        } else if (value instanceof java.util.List) {
-            convertListToJson((java.util.List<?>) value, sb, indent);
-        } else {
-            sb.append("\"").append(escapeJson(value.toString())).append("\"");
-        }
-    }
-
-    private static void convertListToJson(java.util.List<?> list, StringBuilder sb, int indent) {
-        sb.append("[\n");
-        boolean first = true;
-        for (Object item : list) {
-            if (!first) {
-                sb.append(",\n");
-            }
-            addIndent(sb, indent + 1);
-            convertValueToJson(item, sb, indent + 1);
-            first = false;
-        }
-        sb.append("\n");
-        addIndent(sb, indent);
-        sb.append("]");
-    }
-
-    private static void addIndent(StringBuilder sb, int level) {
-        for (int i = 0; i < level; i++) {
-            sb.append("  ");
-        }
-    }
-
-    private static String escapeJson(String str) {
-        return str.replace("\\", "\\\\")
-                  .replace("\"", "\\\"")
-                  .replace("\n", "\\n")
-                  .replace("\r", "\\r")
-                  .replace("\t", "\\t");
     }
 }

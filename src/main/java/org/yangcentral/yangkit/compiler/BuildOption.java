@@ -88,7 +88,10 @@ public class BuildOption {
                 for (JsonElement moduleElement :moduleList){
                     JsonObject moduleObject = moduleElement.getAsJsonObject();
                     String name = moduleObject.get("name").getAsString();
-                    String revision = moduleObject.get("revision").getAsString();
+                    String revision = "";
+                    if (moduleObject.get("revision") != null && !moduleObject.get("revision").isJsonNull()) {
+                        revision = moduleObject.get("revision").getAsString();
+                    }
                     String organization = null;
                     if(moduleObject.get("organization") != null){
                         organization = moduleObject.get("organization").getAsString();

@@ -55,7 +55,7 @@ public class PluginInfo {
         parameters.add(parameter);
     }
 
-    public static PluginInfo parse(File pluginFile,JsonElement jsonElement){
+    public static PluginInfo parse(File pluginFile,JsonElement jsonElement) throws YangCompilerException {
         JsonObject jsonObject = jsonElement.getAsJsonObject();
         String pluginName = jsonObject.get("name").getAsString();
         String classPath = null;
