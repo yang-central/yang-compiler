@@ -7,9 +7,11 @@ import org.yangcentral.yangkit.catalog.ModuleInfo;
 import org.yangcentral.yangkit.compiler.util.YangCompilerUtil;
 import org.yangcentral.yangkit.model.api.schema.YangSchemaContext;
 import org.yangcentral.yangkit.model.api.stmt.Module;
+import org.yangcentral.yangkit.parser.YangParserException;
 import org.yangcentral.yangkit.parser.YangYinParser;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,10 +59,14 @@ public class FileSource implements Source{
                 }
                 logger.info("end to build dependencies for files:"+ files);
             }
-            logger.info("end to build schema context for files:"+ files);
+            logger.info("End to build schema context for files: {}", files);
             return schemaContext;
+        } catch (YangParserException e) {
+            throw new YangCompilerException("Failed to parse YANG files: " + files, e);
+        } catch (IOException e) {
+            throw new YangCompilerException("IO error while processing files: " + files, e);
         } catch (Exception e) {
-            throw new YangCompilerException(e.getMessage());
+            throw new YangCompilerException("Unexpected error while processing files: " + files, e);
         }
     }
 }

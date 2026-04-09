@@ -55,9 +55,13 @@ public class DirectorySource implements Source{
                     }
                     logger.info("end to build dependencies for dir:" + dir);
                 }
-                logger.info("end to build schema context for dir:"+ dir);
+                logger.info("End to build schema context for dir: {}", dir);
+            } catch (YangParserException e) {
+                throw new YangCompilerException("Failed to parse YANG files in directory: " + dir, e);
+            } catch (IOException e) {
+                throw new YangCompilerException("IO error while processing directory: " + dir, e);
             } catch (Exception e) {
-                throw new YangCompilerException(e.getMessage());
+                throw new YangCompilerException("Unexpected error while processing directory: " + dir, e);
             }
         }
         return schemaContext;

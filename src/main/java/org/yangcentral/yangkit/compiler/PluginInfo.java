@@ -3,6 +3,8 @@ package org.yangcentral.yangkit.compiler;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yangcentral.yangkit.compiler.plugin.YangCompilerPlugin;
 
 import java.io.File;
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PluginInfo {
+    private static final Logger logger = LoggerFactory.getLogger(PluginInfo.class);
     private String pluginName;
     private YangCompilerPlugin plugin;
 
@@ -72,7 +75,7 @@ public class PluginInfo {
                     f = new File(classPath);
                 }
                 if(!f.exists()){
-                    System.out.println("[ERROR]the class-path:"+ f.getAbsolutePath() + " is not found.");
+                    logger.error("The class-path: {} is not found.", f.getAbsolutePath());
                     return null;
                 }
                 URL[] cp = {f.toURI().toURL()};
@@ -106,17 +109,17 @@ public class PluginInfo {
             }
             return pluginInfo;
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            throw new YangCompilerException("Plugin class not found: " + className, e);
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
+            throw new YangCompilerException("Plugin class must have a no-arg constructor: " + className, e);
         } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
+            throw new YangCompilerException("Failed to instantiate plugin: " + className, e);
         } catch (InstantiationException e) {
-            throw new RuntimeException(e);
+            throw new YangCompilerException("Cannot instantiate plugin: " + className, e);
         } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
+            throw new YangCompilerException("Illegal access to plugin class: " + className, e);
         } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
+            throw new YangCompilerException("Invalid class-path URL: " + classPath, e);
         }
     }
 }

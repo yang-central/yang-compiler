@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yang-compiler"
+version = "0.1.0"
+description = "Python wrapper for YANG Compiler - A plugin-extensible tool for compiling and processing YANG models"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.7"
+authors = [
+    {name = "YANG Central Team", email = "frank.fengchong@huawei.com"}
+]
+keywords = ["yang", "compiler", "network", "automation", "ietf"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Networking",
+]
+dependencies = [
+    "requests>=2.28.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=22.0",
+    "flake8>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yang-central/yang-compiler"
+Documentation = "https://github.com/yang-central/yang-compiler/tree/main/python"
+Repository = "https://github.com/yang-central/yang-compiler.git"
+"Issue Tracker" = "https://github.com/yang-central/yang-compiler/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/yang_compiler"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=yang_compiler --cov-report=term-missing"
+
+[tool.black]
+line-length = 100
+target-version = ['py37']
+include = '\.pyi?$'

@@ -1,0 +1,24 @@
+# Docker Compose for YANG Compiler
+version: '3.8'
+
+services:
+  yang-compiler:
+    build: .
+    volumes:
+      # 挂载YANG文件目录
+      - ./yang:/opt/yang-compiler/yang:ro
+      # 挂载构建配置
+      - ./build.json:/opt/yang-compiler/build.json:ro
+      # 挂载settings配置
+      - ./settings.json:/opt/yang-compiler/settings.json:ro
+      # 输出目录
+      - ./output:/opt/yang-compiler/output
+      # 本地仓库缓存
+      - yang-cache:/home/yangc/.yang
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    command: ["option=build.json"]
+
+volumes:
+  yang-cache:
+    driver: local

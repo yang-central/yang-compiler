@@ -51,7 +51,7 @@ public class Proxy {
                 URL url = new URL(urlString);
                 proxy = Proxy.create(url);
             } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
+                throw new IllegalArgumentException("Invalid proxy URL: " + urlString, e);
             }
         } else {
             JsonElement hostElement = jsonObject.get("host");

@@ -1,6 +1,38 @@
 #!/bin/bash
 
-JAR="target/yang-compiler-1.0-SNAPSHOT.jar"
+# Color codes for better UX
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+# Auto-detect JAR file from target directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+JAR=$(find "$SCRIPT_DIR/target" -name "yang-compiler-*.jar" 2>/dev/null | sort -V | tail -n 1)
+
+# Function to print colored messages
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_header() {
+    echo -e "${BOLD}${CYAN}$1${NC}"
+}
 
 # Help command (no JAR needed)
 if [ "$1" = "help" ] || [ "$1" = "--help" ]; then
@@ -35,19 +67,20 @@ fi
 
 # Init command (no JAR needed)
 if [ "$1" = "init" ]; then
-  echo "Initializing YANG compiler project..."
+  print_header "Initializing YANG Compiler Project"
+  echo ""
 
   # Create yang directory
   if [ -d "yang" ]; then
-    echo "  Directory yang/ already exists, skipping."
+    print_warning "Directory yang/ already exists, skipping."
   else
     mkdir yang
-    echo "  Created directory: yang/"
+    print_success "Created directory: yang/"
   fi
 
   # Generate default build.json
   if [ -f "build.json" ]; then
-    echo "  build.json already exists, skipping."
+    print_warning "build.json already exists, skipping."
   else
     cat > build.json <<'BUILDJSON'
 {
@@ -69,12 +102,12 @@ if [ "$1" = "init" ]; then
   ]
 }
 BUILDJSON
-    echo "  Created: build.json"
+    print_success "Created: build.json"
   fi
 
   # Generate default settings.json
   if [ -f "settings.json" ]; then
-    echo "  settings.json already exists, skipping."
+    print_warning "settings.json already exists, skipping."
   else
     cat > settings.json <<'SETTINGSJSON'
 {
@@ -84,10 +117,12 @@ BUILDJSON
   }
 }
 SETTINGSJSON
-    echo "  Created: settings.json"
+    print_success "Created: settings.json"
   fi
 
-  echo "Done. Place your YANG files in the 'yang/' directory and run './yangc' to compile."
+  echo ""
+  print_success "Project initialized successfully!"
+  print_info "Place your YANG files in the 'yang/' directory and run './yangc compile ./yang' to compile."
   exit 0
 fi
 
@@ -96,7 +131,7 @@ if [ "$1" = "compile" ]; then
   shift
 
   if [ $# -eq 0 ]; then
-    echo "Error: 'compile' requires at least one input (file, directory, or module name)."
+    print_error "'compile' requires at least one input (file, directory, or module name)."
     echo "Usage: ./yangc compile <inputs...> [--plugin <name>] [--param key=value ...]"
     exit 1
   fi
@@ -112,12 +147,12 @@ if [ "$1" = "compile" ]; then
       --plugin)
         PLUGIN_COUNT=$((PLUGIN_COUNT + 1))
         if [ "$PLUGIN_COUNT" -gt 1 ]; then
-          echo "Error: Only one --plugin is allowed in quick CLI mode."
-          echo "For multiple plugins, use a build.json file and run: ./yangc option=build.json"
+          print_error "Only one --plugin is allowed in quick CLI mode."
+          print_info "For multiple plugins, use a build.json file and run: ./yangc option=build.json"
           exit 1
         fi
         if [ -z "$2" ]; then
-          echo "Error: --plugin requires a value."
+          print_error "--plugin requires a value."
           exit 1
         fi
         PLUGIN="$2"
@@ -125,7 +160,7 @@ if [ "$1" = "compile" ]; then
         ;;
       --param)
         if [ -z "$2" ]; then
-          echo "Error: --param requires a key=value argument."
+          print_error "--param requires a key=value argument."
           exit 1
         fi
         PARAMS+=("$2")
@@ -139,18 +174,30 @@ if [ "$1" = "compile" ]; then
   done
 
   if [ ${#INPUTS[@]} -eq 0 ]; then
-    echo "Error: 'compile' requires at least one input (file, directory, or module name)."
+    print_error "'compile' requires at least one input (file, directory, or module name)."
     echo "Usage: ./yangc compile <inputs...> [--plugin <name>] [--param key=value ...]"
     exit 1
   fi
 
   [ -z "$PLUGIN" ] && PLUGIN="validator_plugin"
 
-  if [ ! -f "$JAR" ]; then
-    echo "Error: $JAR not found."
-    echo "Please build the project first by running: mvn clean install"
+  if [ -z "$JAR" ] || [ ! -f "$JAR" ]; then
+    print_error "No JAR file found in target/ directory."
+    print_info "Please build the project first by running: mvn clean package"
     exit 1
   fi
+
+  # Show compilation info
+  print_header "YANG Compiler"
+  echo ""
+  print_info "Inputs: ${INPUTS[*]}"
+  print_info "Plugin: $PLUGIN"
+  if [ ${#PARAMS[@]} -gt 0 ]; then
+    print_info "Parameters: ${PARAMS[*]}"
+  fi
+  echo ""
+  print_info "Compiling..."
+  echo ""
 
   TEMP_BUILD=$(mktemp "${TMPDIR:-/tmp}/temp-build-XXXXXX.json")
 
@@ -167,7 +214,7 @@ if [ "$1" = "compile" ]; then
       ESCAPED=$(printf '%s' "$INPUT" | sed 's/\\/\\\\/g; s/"/\\"/g')
       FILE_LIST+=("\"$ESCAPED\"")
     elif [[ "$INPUT" == *.yang ]]; then
-      echo "Error: File not found: $INPUT"
+      print_error "File not found: $INPUT"
       rm -f "$TEMP_BUILD"
       exit 1
     else
@@ -219,13 +266,22 @@ if [ "$1" = "compile" ]; then
   java -jar "$JAR" "option=$TEMP_BUILD"
   EXIT_CODE=$?
   rm -f "$TEMP_BUILD"
+  
+  if [ $EXIT_CODE -eq 0 ]; then
+    echo ""
+    print_success "Compilation completed successfully!"
+  else
+    echo ""
+    print_error "Compilation failed with exit code: $EXIT_CODE"
+  fi
+  
   exit $EXIT_CODE
 fi
 
 # All other commands require the JAR
-if [ ! -f "$JAR" ]; then
-  echo "Error: $JAR not found."
-  echo "Please build the project first by running: mvn clean install"
+if [ -z "$JAR" ] || [ ! -f "$JAR" ]; then
+  print_error "No JAR file found in target/ directory."
+  print_info "Please build the project first by running: mvn clean package"
   exit 1
 fi
 

@@ -1,0 +1,36 @@
+# YANG Compiler Build Configuration (YAML format)
+# This is an example of using YAML instead of JSON for build configuration
+
+yang:
+  module:
+    - name: ietf-interfaces
+      revision: ""
+    - name: huawei-ifm
+      revision: "2022-08-06"
+  
+  dir:
+    - yang/ietf
+    - yang/huawei
+  
+  file:
+    - yang/custom/my-module.yang
+
+settings: settings.yaml
+
+plugin:
+  - name: validator_plugin
+    parameter:
+      output: yang/validator.txt
+  
+  - name: yangtree_generator
+    parameter:
+      output: tree
+      expand-grouping: true
+      line-length: 72
+  
+  - name: yang_statistics
+    parameter:
+      output: statistics/node_description.xlsx
+      tag:
+        - name: operation-exclude
+          keyword: "huawei-extension:operation-exclude"

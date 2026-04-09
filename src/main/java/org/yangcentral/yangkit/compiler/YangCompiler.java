@@ -95,18 +95,13 @@ public class YangCompiler {
 
 
 
-    public YangSchemaContext buildSchemaContext(){
+    public YangSchemaContext buildSchemaContext() throws YangCompilerException {
         YangSchemaContext schemaContext = null;
-        try {
-            List<Source> sources = buildOption.getSources();
-            for(Source source:sources){
-                schemaContext = source.buildSource(settings,schemaContext,true);
-            }
-
-            return schemaContext;
-        }  catch (YangCompilerException e) {
-            throw new RuntimeException(e);
+        List<Source> sources = buildOption.getSources();
+        for(Source source : sources) {
+            schemaContext = source.buildSource(settings, schemaContext, true);
         }
+        return schemaContext;
     }
 
     private void saveModule(String fileName, List<YangElement> elements) {
@@ -140,23 +135,22 @@ public class YangCompiler {
         }
     }
 
-    public void compile()  {
+    public void compile() throws YangCompilerException {
         if(buildOption == null) {
             logger.warn("build.json is not found.");
             return;
         }
-        logger.info("build yang schema context.");
+        logger.info("Build YANG schema context.");
         YangSchemaContext schemaContext = buildSchemaContext();
         ValidatorResult validatorResult = schemaContext.validate();
         if(!validatorResult.isOk()){
-            logger.error("there are some errors when validating yang schema context.");
-            System.out.println(validatorResult);
+            logger.error("There are some errors when validating yang schema context.\n{}", validatorResult);
             return;
         }
         for(Plugin pluginBuilder: getBuildOption().getPlugins()){
             PluginInfo pluginInfo = getPluginInfo(pluginBuilder.getName());
             if(null == pluginInfo){
-                logger.warn("can not find a plugin named:"+ pluginBuilder.getName());
+                logger.warn("Cannot find a plugin named: {}", pluginBuilder.getName());
                 continue;
             }
             YangCompilerPlugin plugin = pluginInfo.getPlugin();
@@ -171,16 +165,17 @@ public class YangCompiler {
                         }
                     }
                 }
-                logger.info("call plugin:" + pluginInfo.getPluginName() + " ...");
-                plugin.run(schemaContext,this,parameters);
-                logger.info("ok.");
+                logger.info("Call plugin: {} ...", pluginInfo.getPluginName());
+                plugin.run(schemaContext, this, parameters);
+                logger.info("Plugin {} executed successfully.", pluginInfo.getPluginName());
             } catch (YangCompilerException e) {
-                logger.error(e.getMessage());
+                logger.error("Plugin {} execution failed: {}", pluginInfo.getPluginName(), e.getMessage(), e);
+                throw e;
             }
         }
         ValidatorResultBuilder validatorResultBuilder = new ValidatorResultBuilder();
         List<ValidatorRecord<?,?>> records = validatorResult.getRecords();
-        for(ValidatorRecord<?,?> record:records){
+        for(ValidatorRecord<?,?> record : records){
             if(record.getBadElement() instanceof YangStatement){
                 YangStatement yangStatement = (YangStatement) record.getBadElement();
                 if(schemaContext.getModules().contains(yangStatement.getContext().getCurModule())){
@@ -192,7 +187,7 @@ public class YangCompiler {
         if(install && validatorResult.isOk()){
             installModules(schemaContext.getModules());
         }
-        logger.info(validatorResult.toString());
+        logger.info("Validation result:\n{}", validatorResult);
     }
 
 

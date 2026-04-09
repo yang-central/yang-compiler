@@ -1,5 +1,29 @@
 # YANG Compiler — User Guide
 
+## New Features (v1.4.0+)
+
+### Python Wrapper
+A Python interface is now available for programmatic access to YANG Compiler:
+
+```python
+from yang_compiler import YangCompiler
+
+compiler = YangCompiler(auto_download=True)
+result = compiler.compile(modules=['ietf-interfaces'])
+```
+
+See [Python Package Documentation](../python/README.md) for details.
+
+### Homebrew Installation (macOS)
+macOS users can now install via Homebrew:
+
+```bash
+brew tap yang-central/yang-compiler
+brew install yang-compiler
+```
+
+---
+
 ## Table of Contents
 1. [Quick CLI Reference](#quick-cli-reference)
 2. [Make Application Package](#make-application-package)

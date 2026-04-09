@@ -73,7 +73,7 @@ public class ModuleSource implements Source{
                 try {
                     targetModuleInfo = YangCompilerUtil.getSchema(moduleInfo,settings);
                 } catch (IOException e) {
-                    throw new YangCompilerException(e.getMessage());
+                    throw new YangCompilerException("Failed to get schema for module: " + moduleInfo.getModuleInfo(), e);
                 }
                 if(targetModuleInfo == null){
                     throw new YangCompilerException("module="
@@ -88,44 +88,48 @@ public class ModuleSource implements Source{
 
 
             try {
-                logger.info("download yang from "+ schema.toURL());
-                String yangString = YangCompilerUtil.urlInvoke2String(schema.toURL().toString(),settings);
+                logger.info("Download YANG from {}", schema.toURL());
+                String yangString = YangCompilerUtil.urlInvoke2String(schema.toURL().toString(), settings);
 
                 InputStream inputStream = new ByteArrayInputStream(yangString.getBytes());
                 String parseModuleInfo = schema.toURL().toString();
                 schemaContext = YangYinParser.parse(inputStream,
-                        parseModuleInfo,true,importOnly,schemaContext);
-                //judge whether this module exists in local repository
-                if(YangCompilerUtil.getSchemaFromLocal(targetModuleInfo,settings) == null) {
-                    // if not found, install to local repository
-                    String fileName = settings.getLocalRepository()+File.separator +targetModuleInfo.getModuleInfo()
-                            + ".yang" ;
-                    FileUtil.writeUtf8File(fileName,yangString);
-                    logger.info("install "+ targetModuleInfo.getModuleInfo() + ".yang to " + settings.getLocalRepository());
+                        parseModuleInfo, true, importOnly, schemaContext);
+                // Judge whether this module exists in local repository
+                if(YangCompilerUtil.getSchemaFromLocal(targetModuleInfo, settings) == null) {
+                    // If not found, install to local repository
+                    String fileName = settings.getLocalRepository() + File.separator + targetModuleInfo.getModuleInfo()
+                            + ".yang";
+                    FileUtil.writeUtf8File(fileName, yangString);
+                    logger.info("Install {} to {}", targetModuleInfo.getModuleInfo() + ".yang", settings.getLocalRepository());
                 }
                 if(withDependencies) {
-                    logger.info("get dependencies for "+ targetModuleInfo.getModuleInfo());
-                    Module sourceModule = schemaContext.getModule(targetModuleInfo.getName(),targetModuleInfo.getRevision())
+                    logger.info("Get dependencies for {}", targetModuleInfo.getModuleInfo());
+                    Module sourceModule = schemaContext.getModule(targetModuleInfo.getName(), targetModuleInfo.getRevision())
                             .get();
 
                     List<ModuleInfo> dependencies = YangCompilerUtil.getDependencies(sourceModule);
                     if(!dependencies.isEmpty()) {
                         List<ModuleInfo> extraDependencies = new ArrayList<>();
                         for(ModuleInfo dependency : dependencies) {
-                            if(schemaContext.getModule(dependency.getName(),dependency.getRevision()).isPresent()){
+                            if(schemaContext.getModule(dependency.getName(), dependency.getRevision()).isPresent()){
                                 continue;
                             }
                             extraDependencies.add(dependency);
                         }
-                        ModuleSource extraDependenciesSource = new ModuleSource(extraDependencies,true);
-                        logger.info("start to build dependencies for "+ targetModuleInfo.getModuleInfo());
-                        schemaContext = extraDependenciesSource.buildSource(settings,schemaContext,true);
-                        logger.info("end to build dependencies for "+ targetModuleInfo.getModuleInfo());
+                        ModuleSource extraDependenciesSource = new ModuleSource(extraDependencies, true);
+                        logger.info("Start to build dependencies for {}", targetModuleInfo.getModuleInfo());
+                        schemaContext = extraDependenciesSource.buildSource(settings, schemaContext, true);
+                        logger.info("End to build dependencies for {}", targetModuleInfo.getModuleInfo());
                     }
                 }
 
+            } catch (YangParserException e) {
+                throw new YangCompilerException("Failed to parse YANG module: " + targetModuleInfo.getModuleInfo(), e);
+            } catch (IOException e) {
+                throw new YangCompilerException("IO error while processing module: " + targetModuleInfo.getModuleInfo(), e);
             } catch (Exception e) {
-                throw new YangCompilerException(e.getMessage());
+                throw new YangCompilerException("Unexpected error while processing module: " + targetModuleInfo.getModuleInfo(), e);
             }
         }
         return schemaContext;

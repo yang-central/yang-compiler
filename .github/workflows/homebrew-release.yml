@@ -1,0 +1,58 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  update-formula:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      
+      - name: Get release info
+        id: release
+        run: |
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Download release tarball
+        run: |
+          wget https://github.com/yang-central/yang-compiler/releases/download/${{ steps.release.outputs.tag }}/yang-compiler-${{ steps.release.outputs.version }}.tar.gz
+      
+      - name: Calculate SHA256
+        id: sha256
+        run: |
+          HASH=$(sha256sum yang-compiler-${{ steps.release.outputs.version }}.tar.gz | awk '{print $1}')
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+          echo "SHA256: $HASH"
+      
+      - name: Update Formula
+        uses: mislav/bump-homebrew-formula-action@v2
+        with:
+          formula-name: yang-compiler
+          formula-path: homebrew/Formula/yang-compiler.rb
+          homebrew-tap: yang-central/homebrew-yang-compiler
+          base-branch: main
+          download-url: https://github.com/yang-central/yang-compiler/releases/download/${{ steps.release.outputs.tag }}/yang-compiler-${{ steps.release.outputs.version }}.tar.gz
+          commit-message: |
+            {{formulaName}} ${{ steps.release.outputs.version }}
+            
+            Created by automated release workflow from ${{ github.repository }}
+        env:
+          COMMITTER_TOKEN: ${{ secrets.BREW_TAP_TOKEN }}
+      
+      - name: Create summary
+        run: |
+          echo "## Homebrew Formula Updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.release.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: ${{ steps.release.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA256**: \`${{ steps.sha256.outputs.hash }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Users can now install with:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "brew tap yang-central/yang-compiler" >> $GITHUB_STEP_SUMMARY
+          echo "brew install yang-compiler" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

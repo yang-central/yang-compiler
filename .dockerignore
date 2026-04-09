@@ -1,0 +1,20 @@
+# Docker
+target/
+*.jar
+!target/yang-compiler-*.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak

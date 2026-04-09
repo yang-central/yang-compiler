@@ -4,10 +4,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yangcentral.yangkit.compiler.BuildOption;
 import org.yangcentral.yangkit.compiler.PluginInfo;
 import org.yangcentral.yangkit.compiler.Settings;
 import org.yangcentral.yangkit.compiler.YangCompiler;
+import org.yangcentral.yangkit.compiler.YangCompilerException;
+import org.yangcentral.yangkit.compiler.config.ConfigurationLoader;
 import org.yangcentral.yangkit.utils.file.FileUtil;
 
 import java.io.File;
@@ -19,6 +23,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class YangCompilerRunner {
+    private static final Logger logger = LoggerFactory.getLogger(YangCompilerRunner.class);
     private static List<PluginInfo> parsePlugins(File pluginsFile,String str){
         List<PluginInfo> pluginInfos = new ArrayList<>();
         JsonElement pluginsElement = JsonParser.parseString(str);
@@ -46,12 +51,12 @@ public class YangCompilerRunner {
                 .toURI());
         File pluginsDir = new File(programDir.getParentFile(),"plugins");
         if(!pluginsDir.exists()){
-            System.out.println("[WARNING]plugins dir:"+ pluginsDir.getAbsolutePath() + " is not exists");
+            logger.warn("Plugins dir: {} does not exist", pluginsDir.getAbsolutePath());
             return;
         }
         File pluginsFile = new File(pluginsDir,"plugins.json");
         if(pluginsFile.exists()){
-            System.out.println("[INFO]reading the information of plugins from:"+ pluginsFile.getAbsolutePath());
+            logger.info("Reading the information of plugins from: {}", pluginsFile.getAbsolutePath());
             List<PluginInfo> pluginInfos = parsePlugins(pluginsFile,FileUtil.readFile2String(pluginsFile));
             for(PluginInfo pluginInfo:pluginInfos){
                 yangCompiler.addPluginInfo(pluginInfo);
@@ -82,12 +87,14 @@ public class YangCompilerRunner {
         }
         // get build option
         File optionFile = new File(option);
-        if(!optionFile.exists()){
-            System.out.println("The option file:" + option + " is not found.");
+        BuildOption buildOption;
+        try {
+            buildOption = ConfigurationLoader.loadBuildConfig(optionFile);
+        } catch (Exception e) {
+            logger.error("Failed to load build configuration: {}", e.getMessage(), e);
             return;
         }
-        JsonElement jsonElement = JsonParser.parseString(FileUtil.readFile2String(optionFile));
-        BuildOption buildOption = BuildOption.parse(jsonElement);
+        
         // get settings
         String settingsPath = buildOption.getSettings();
         if(settingsPath == null){
@@ -107,16 +114,24 @@ public class YangCompilerRunner {
                     + File.separator
                     + "settings.json";
         }
-        Settings settings = new Settings();
+        Settings settings;
         File settingsfile = new File(settingsPath);
-        if(settingsfile.exists()){
-            settings = Settings.parse(FileUtil.readFile2String(settingsfile));
+        try {
+            settings = ConfigurationLoader.loadSettings(settingsfile);
+        } catch (Exception e) {
+            logger.error("Failed to load settings: {}", e.getMessage(), e);
+            return;
         }
         YangCompiler compiler = new YangCompiler();
         compiler.setBuildOption(buildOption);
         compiler.setSettings(settings);
         compiler.setInstall(install);
         preparePlugins(compiler);
-        compiler.compile();
+        try {
+            compiler.compile();
+        } catch (YangCompilerException e) {
+            logger.error("Compilation failed: {}", e.getMessage(), e);
+            System.exit(1);
+        }
     }
 }

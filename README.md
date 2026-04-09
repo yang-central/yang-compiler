@@ -27,7 +27,86 @@ The compiler resolves input modules and their dependencies through configurable 
 
 * JDK or JRE 1.8 or above
 
-### Obtain and build
+### Installation on macOS
+
+#### Option 1: Manual Installation (Current)
+```bash
+# Install JDK 8+ using Homebrew
+brew install openjdk@8
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+
+# Clone and build
+git clone https://github.com/yang-central/yang-compiler.git
+cd yang-compiler
+mvn clean package
+
+# Make script executable
+chmod +x yangc
+
+# Verify installation
+./yangc --help
+```
+
+#### Option 2: Docker (Recommended for Quick Start)
+```bash
+# Pull and run with Docker
+docker pull yangcentral/yang-compiler:latest
+docker run -v $(pwd)/yang:/opt/yang-compiler/yang yang-compiler:latest
+
+# Or use Docker Compose
+docker-compose up
+```
+
+#### Option 3: Homebrew (Recommended)
+```bash
+# Add the tap
+brew tap yang-central/yang-compiler
+
+# Install
+brew install yang-compiler
+
+# Verify installation
+yangc --help
+```
+
+**Benefits of Homebrew installation:**
+- ✅ One-command installation
+- ✅ Automatic dependency management (Java, Maven)
+- ✅ Easy updates: `brew upgrade yang-compiler`
+- ✅ Clean uninstall: `brew uninstall yang-compiler`
+
+### Installation on Linux
+
+```bash
+# Install JDK 8+
+sudo apt-get install openjdk-8-jdk  # Debian/Ubuntu
+sudo yum install java-1.8.0-openjdk  # CentOS/RHEL
+
+# Clone and build
+git clone https://github.com/yang-central/yang-compiler.git
+cd yang-compiler
+mvn clean package
+
+# Make script executable
+chmod +x yangc
+```
+
+### Installation on Windows
+
+```powershell
+# Install JDK 8+ from https://adoptium.net/
+# Ensure Java is in your PATH
+
+# Clone and build
+git clone https://github.com/yang-central/yang-compiler.git
+cd yang-compiler
+mvn clean package
+
+# Use the batch script
+yangc.bat --help
+```
+
+### Obtain and build (Generic)
 
 ```bash
 git clone https://github.com/yang-central/yang-compiler.git
@@ -35,7 +114,7 @@ cd yang-compiler
 mvn clean install
 ```
 
-This generates `yang-compiler-1.0-SNAPSHOT.jar` and a `libs` directory under `target/`.
+This generates `yang-compiler-*.jar` and a `libs` directory under `target/`.
 
 ## Quick Start
 
