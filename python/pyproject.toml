@@ -32,12 +32,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [
+    "mcp>=1.23.0",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "black>=22.0",
     "flake8>=5.0",
 ]
+
+[project.scripts]
+yang-compiler-mcp = "yang_compiler.mcp_server:main"
 
 [project.urls]
 Homepage = "https://github.com/yang-central/yang-compiler"

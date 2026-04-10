@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "yang-compiler": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "-m",
+        "yang_compiler.mcp_server"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/python/src"
+      }
+    }
+  }
+}

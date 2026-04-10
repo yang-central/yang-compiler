@@ -56,8 +56,9 @@ bin/
 /nbdist/
 /.nb-gradle/
 
-# IDE - VS Code
-.vscode/
+# IDE - VS Code (ignore user-specific settings but track shared MCP config)
+.vscode/*
+!.vscode/mcp.json
 *.code-workspace
 
 # OS specific
